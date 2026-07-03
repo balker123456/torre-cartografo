@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Torre del Cartógrafo · RPG de funciones</title>
+<style>
+  :root{
+    --bg:#0d0a1a; --panel:#1a1430; --panel2:#241b45; --border:#5a4a9c;
+    --gold:#ffce63; --ok:#5dffa0; --bad:#ff6b81; --hp:#ff4d6d;
+    --txt:#f3efff; --mut:#9b8fc7; --acc:#8f7bff;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--txt);
+    font-family:"Courier New",ui-monospace,Menlo,Consolas,monospace; min-height:100%;}
+  body{background:
+    radial-gradient(900px 500px at 80% -10%, #241b45 0%, var(--bg) 60%);}
+  #app{max-width:560px; margin:0 auto; padding:10px 10px 34px;}
+  .hidden{display:none !important;}
+  h1{font-size:1.45rem; letter-spacing:.04em; margin:.3em 0; text-transform:uppercase;}
+  h2{font-size:1.1rem; margin:.3em 0; text-transform:uppercase; letter-spacing:.05em;}
+  .mut{color:var(--mut); font-size:.9rem;}
+  .px-panel{background:var(--panel); border:3px solid var(--border); border-radius:4px;
+    box-shadow:0 3px 0 #120d26, inset 0 0 0 2px #0d0a1a; padding:14px; margin:10px 0;}
+  button{font:inherit; cursor:pointer;}
+  .btn{display:block; width:100%; padding:13px 14px; margin:8px 0; font-size:1rem; font-weight:bold;
+    color:#1a1430; background:var(--gold); border:3px solid #b8902f; border-radius:4px;
+    box-shadow:0 3px 0 #7a5c15; text-transform:uppercase; letter-spacing:.03em;}
+  .btn:active{transform:translateY(2px); box-shadow:0 1px 0 #7a5c15;}
+  .btn.sec{background:var(--panel2); color:var(--txt); border-color:var(--border); box-shadow:0 3px 0 #120d26;}
+  .btn:disabled{opacity:.5; cursor:default;}
+  input[type=text]{width:100%; padding:12px; font:inherit; font-size:1.05rem;
+    background:#120d26; color:var(--txt); border:3px solid var(--border); border-radius:4px; outline:none;}
+  input[type=text]:focus{border-color:var(--gold);}
+  /* HUD */
+  #hud{display:flex; align-items:center; gap:8px; padding:6px 2px; font-size:1rem; flex-wrap:wrap;}
+  #hud .chip{background:var(--panel); border:2px solid var(--border); border-radius:4px; padding:4px 9px; white-space:nowrap;}
+  #hud-hearts{letter-spacing:2px; color:var(--hp);}
+  /* Escena */
+  #stage-wrap{position:relative; border:3px solid var(--border); border-radius:4px;
+    box-shadow:0 3px 0 #120d26; overflow:hidden; background:#000;}
+  #stage{display:block; width:100%; height:auto; image-rendering:pixelated; image-rendering:crisp-edges;}
+  #zone-tag{position:absolute; top:6px; left:8px; font-size:.72rem; color:#fff;
+    background:rgba(13,10,26,.75); border:1px solid var(--border); padding:2px 8px; border-radius:3px;
+    text-transform:uppercase; letter-spacing:.08em;}
+  /* Caja de diálogo */
+  #dlg{min-height:120px;}
+  #dlg-who{color:var(--gold); font-weight:bold; text-transform:uppercase; font-size:.85rem; letter-spacing:.06em; margin-bottom:6px;}
+  #dlg-text{font-size:1.02rem; line-height:1.5; white-space:pre-line; min-height:58px;}
+  #dlg-tap{color:var(--mut); font-size:.8rem; text-align:right; animation:blink 1.1s infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+  .svgbox{background:#0a0716; border:2px solid var(--border); border-radius:4px; padding:6px; margin:8px 0; text-align:center;}
+  .svgbox svg{max-width:100%; height:auto;}
+  .opt{display:block; width:100%; text-align:left; padding:11px 13px; margin:7px 0; font:inherit; font-size:.98rem;
+    background:var(--panel2); color:var(--txt); border:2px solid var(--border); border-radius:4px;}
+  .opt:before{content:"▸ "; color:var(--gold);}
+  .opt.ok{border-color:var(--ok); background:#12301f;}
+  .opt.bad{border-color:var(--bad); background:#331520;}
+  .opt:disabled{cursor:default; opacity:.9;}
+  #fb{border-radius:4px; padding:11px 13px; margin-top:10px; font-size:.95rem; line-height:1.45; display:none; border:2px solid;}
+  #fb.ok{display:block; background:#12301f; border-color:var(--ok);}
+  #fb.bad{display:block; background:#331520; border-color:var(--bad);}
+  /* Barra de vida enemigo */
+  #foe-bar{display:none; align-items:center; gap:8px; margin-top:8px; font-size:.85rem;}
+  #foe-hp{flex:1; height:12px; background:#120d26; border:2px solid var(--border); border-radius:3px; overflow:hidden;}
+  #foe-hp>div{height:100%; background:linear-gradient(90deg,#ff4d6d,#ff8fa3); width:100%; transition:width .35s;}
+  /* Mapa */
+  .node{display:flex; align-items:center; gap:12px; width:100%; text-align:left; font:inherit;
+    background:var(--panel); border:3px solid var(--border); border-radius:4px; padding:12px 14px; margin:9px 0; color:var(--txt);}
+  .node .ico{font-size:1.5rem; width:40px; text-align:center; flex:none;}
+  .node .tt{font-weight:bold; text-transform:uppercase; font-size:.92rem; letter-spacing:.04em;}
+  .node .st{font-size:.8rem; color:var(--mut);}
+  .node.done{border-color:var(--ok);}
+  .node.locked{opacity:.45;}
+  .center{text-align:center;}
+  .big{font-size:1.9rem; font-weight:bold; color:var(--gold);}
+  .code-box{font-size:1rem; word-break:break-all; background:#0a0716;
+    border:2px dashed var(--gold); border-radius:4px; padding:12px; margin:10px 0;}
+  .linky{background:none; border:none; color:var(--mut); text-decoration:underline; font-size:.82rem; padding:8px;}
+  table.dec{width:100%; border-collapse:collapse; margin-top:10px;}
+  table.dec td{border-bottom:1px solid var(--border); padding:7px 5px; font-size:.92rem;}
+  table.dec td:first-child{color:var(--mut);}
+  .titlecard{font-size:2.4rem; line-height:1;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="nojs" style="background:#5c1a26; border:3px solid #ff6b81; border-radius:4px; padding:14px; margin:10px 0; font-size:.95rem; line-height:1.5">
+    ⚠️ <b>El juego está bloqueado por el visor de vista previa.</b><br><br>
+    Para jugar: toca los <b>tres puntos ⋮</b> (o el botón de descarga ⬇) y elige <b>"Abrir en el navegador"</b> (Safari o Chrome). La vista previa de Classroom/Drive no permite juegos.
+  </div>
+
+  <header id="hud" class="hidden">
+    <span class="chip" id="hud-hearts">♥♥♥♥♥</span>
+    <span class="chip">🧪 <b id="hud-pot">0</b></span>
+    <span class="chip">✦ <b id="hud-xp">0</b> XP</span>
+    <button class="chip" id="btn-usepot" style="color:var(--ok)">Beber poción</button>
+  </header>
+
+  <!-- ESCENARIO -->
+  <div id="stage-wrap" class="hidden">
+    <canvas id="stage" width="320" height="150"></canvas>
+    <span id="zone-tag"></span>
+  </div>
+
+  <!-- TÍTULO -->
+  <section id="scr-title">
+    <div class="px-panel center">
+      <div class="titlecard">🗼</div>
+      <h1>La Torre del Cartógrafo</h1>
+      <p class="mut">Un RPG matemático · funciones · IV medio</p>
+      <p style="text-align:left; font-size:.95rem; line-height:1.5">El Gran Cartógrafo desapareció. Sin sus mapas de reglas, las criaturas del reino quedaron sin control. Solo alguien que domine el lenguaje de las <b>funciones</b> puede llegar a la torre y restaurar el orden…</p>
+      <input type="text" id="in-name" maxlength="30" placeholder="Nombre de tu héroe (nombre y apellido real)" autocomplete="off">
+      <button class="btn" id="btn-start">⚔️ Comenzar aventura</button>
+      <button class="linky" id="btn-teacher">Modo docente</button>
+    </div>
+  </section>
+
+  <!-- DIÁLOGO / JUEGO -->
+  <section id="scr-game" class="hidden">
+    <div class="px-panel" id="dlg">
+      <div id="foe-bar"><span id="foe-name"></span><div id="foe-hp"><div></div></div></div>
+      <div id="dlg-who"></div>
+      <div id="dlg-text"></div>
+      <div class="svgbox hidden" id="dlg-svg"></div>
+      <div id="dlg-opts"></div>
+      <div id="dlg-inputwrap" class="hidden">
+        <input type="text" id="dlg-input" autocomplete="off" placeholder="Tu respuesta…">
+        <button class="btn" id="btn-check">⚡ Responder</button>
+      </div>
+      <div id="fb"></div>
+      <div id="dlg-tap" class="hidden">▼ toca para continuar</div>
+    </div>
+  </section>
+
+  <!-- MAPA -->
+  <section id="scr-map" class="hidden">
+    <h2>🗺️ Mapa del reino</h2>
+    <p class="mut" id="map-hi"></p>
+    <div id="map-list"></div>
+    <button class="linky" id="btn-reset">Reiniciar aventura desde cero</button>
+  </section>
+
+  <!-- GAME OVER -->
+  <section id="scr-over" class="hidden">
+    <div class="px-panel center">
+      <div class="titlecard">💀</div>
+      <h2>Has caído…</h2>
+      <p class="mut" id="over-text">Pero los héroes de verdad se levantan. Pierdes 20 XP y vuelves a intentarlo con el corazón lleno.</p>
+      <button class="btn" id="btn-retry">Levantarse y reintentar</button>
+    </div>
+  </section>
+
+  <!-- VICTORIA -->
+  <section id="scr-end" class="hidden">
+    <div class="px-panel center">
+      <div class="titlecard">👑</div>
+      <h2>¡Reino restaurado!</h2>
+      <p class="mut" id="end-name"></p>
+      <div class="big" id="end-xp"></div>
+      <p id="end-detail" style="font-size:.92rem"></p>
+      <p id="end-rank" style="color:var(--gold); font-weight:bold"></p>
+      <p style="text-align:left; font-size:.92rem"><b>Tu código de finalización</b> — pégalo como respuesta en la tarea de Classroom:</p>
+      <div class="code-box" id="end-code"></div>
+      <button class="btn" id="btn-copy">📋 Copiar código</button>
+      <p class="mut" style="font-size:.8rem">No cierres esta pantalla hasta entregar el código.</p>
+    </div>
+  </section>
+
+  <!-- MODO DOCENTE -->
+  <section id="scr-teacher" class="hidden">
+    <div class="px-panel">
+      <h2>🔑 Modo docente</h2>
+      <p class="mut">Pega el código de un/a estudiante para verificarlo.</p>
+      <input type="text" id="t-code" placeholder="Código de finalización" autocomplete="off">
+      <button class="btn" id="btn-decode">Decodificar</button>
+      <div id="t-result"></div>
+      <button class="btn sec" id="btn-tback">Volver</button>
+    </div>
+  </section>
+
+</div>
+<script>
+"use strict";
+// Si el JS corre, ocultamos el aviso de "visor bloqueado".
+document.getElementById('nojs').style.display = 'none';
+// Panel de error visible (para diagnosticar en tablets/celulares sin consola).
+window.onerror = function(msg, src, line){
+  var d = document.getElementById('nojs');
+  d.style.display = 'block';
+  d.innerHTML = '⚠️ <b>Error del juego</b> (muéstrale esto a tu profesor):<br><code style="font-size:.8rem">' +
+    String(msg).replace(/</g, '&lt;') + ' · línea ' + line + '</code>';
+};
+// ============ SPRITES PIXEL ART ============
+// Cada sprite es una matriz de caracteres; la paleta asigna color a cada carácter.
+const SPR = {
+hero: {
+  px: [
+  "....kkkk....",
+  "...kaaaak...",
+  "..kaaaaaak..",
+  "..kassssak..",
+  "..kaseseak..",
+  "..kassssak..",
+  "...kssssk...",
+  "..kAAAAAAk..",
+  ".kcAAggAAck.",
+  ".kcAAggAAck.",
+  ".kcAAAAAAck.",
+  ".kcAAAAAAck.",
+  "..kAAkkAAk..",
+  "..kAk..kAk..",
+  "..kk....kk..",
+  ".kkk....kkk."],
+  pal: { k:'#1b1433', a:'#9db7d9', A:'#5d7fb0', s:'#f0c8a0', e:'#1b1433', c:'#b03a48', g:'#ffce63' }
+},
+slime: {
+  px: [
+  "...gggggg...",
+  "..gggggggg..",
+  ".gggggggggg.",
+  ".ggkggggkgg.",
+  "gggkggggkggg",
+  "gggggggggggg",
+  "ggggkkkkgggg",
+  ".gggggggggg."],
+  pal: { g:'#5dd977', k:'#123a1c' }
+},
+toad: {
+  px: [
+  ".kk......kk.",
+  "kWWk....kWWk",
+  "kWkk....kWkk",
+  ".tttttttttt.",
+  "tttttttttttt".slice(0,12),
+  "ttkttttttktt",
+  "tttttttttttt",
+  ".tttt..tttt.",
+  ".tkt....tkt."],
+  pal: { t:'#6a8f3c', k:'#22300f', W:'#fff8dc' }
+},
+bat: {
+  px: [
+  "m..........m",
+  "mm...mm...mm",
+  "mmm.mmmm.mmm",
+  "mmmmmRRmmmmm",
+  ".mmmmmmmmmm.",
+  "..mm.mm.mm..",
+  "..m......m.."],
+  pal: { m:'#7b6bd9', R:'#ff4d6d' }
+},
+npc: {
+  px: [
+  "....hhhh....",
+  "...hhhhhh...",
+  "..hhhhhhhh..",
+  "..hssssssh..",
+  "..hseseshh..",
+  "..hssssshh..",
+  "...ssssss...",
+  "..rrrrrrrr..",
+  ".rrrggrrrrr.".slice(0,12),
+  ".rrrggrrrr..",
+  ".rrrrrrrrr..",
+  ".rrrrrrrrr..",
+  "..rrrrrrr...",
+  "..rr...rr...",
+  "..rr...rr...",
+  ".rrr...rrr.."],
+  pal: { h:'#8a5a2b', s:'#f0c8a0', e:'#1b1433', r:'#7b4fa0', g:'#ffce63' }
+},
+ghost: {
+  px: [
+  "...wwwwww...",
+  "..wwwwwwww..",
+  ".wwwwwwwwww.",
+  ".wwkwwwwkww.",
+  ".wwkwwwwkww.",
+  ".wwwwwwwwww.",
+  ".wwwkkkkwww.",
+  ".wwwwwwwwww.",
+  ".wwwwwwwwww.",
+  "wwwwwwwwwwww",
+  ".ww.www.ww..",
+  "..w..w...w.."],
+  pal: { w:'#cdd6ff', k:'#1b1433' }
+},
+golem: {
+  px: [
+  "..GGGGGGGG..",
+  ".GGGGGGGGGG.",
+  ".GGRGGGGRGG.",
+  ".GGGGGGGGGG.",
+  "..GGDDDDGG..",
+  "GGGGGGGGGGGG",
+  "GDGGGGGGGGDG",
+  "GDGGDGGDGGDG",
+  "GGGGDGGDGGGG",
+  ".GGGDDDDGGG.",
+  "..GGG..GGG..",
+  "..GG....GG..",
+  ".DGG....GGD.",
+  ".DD......DD."],
+  pal: { G:'#8d8598', D:'#4f4859', R:'#ff9d3c' }
+},
+boss: {
+  px: [
+  ".....dddd.....",
+  "....dddddd....",
+  "...dddddddd...",
+  "..dddddddddd..",
+  "..ddRddddRdd..",
+  "..dddddddddd..",
+  "...dddddddd...",
+  "..dddddddddd..",
+  ".dddDDDDDDdd..".slice(0,14),
+  ".ddDDddddDDdd.",
+  ".ddDDddddDDdd.",
+  ".dddDDDDDDddd.",
+  "..dddddddddd..",
+  "..dddddddddd..",
+  ".dddd.dd.dddd.",
+  ".ddd..dd..ddd.",
+  "..d...dd...d..",
+  "......dd......"],
+  pal: { d:'#2a2145', D:'#4a3a7a', R:'#ff4d6d' }
+}
+};
+
+const CV = document.getElementById('stage');
+const CX = CV.getContext('2d');
+
+function drawSprite(name, x, y, s, flip){
+  const sp = SPR[name]; if (!sp) return;
+  const rows = sp.px;
+  for (let j = 0; j < rows.length; j++){
+    const row = rows[j];
+    for (let i = 0; i < row.length; i++){
+      const c = sp.pal[row[i]];
+      if (!c) continue;
+      const ix = flip ? (row.length - 1 - i) : i;
+      CX.fillStyle = c;
+      CX.fillRect(x + ix * s, y + j * s, s, s);
+    }
+  }
+}
+
+// -------- fondos por zona --------
+function bgSky(top, mid, ground, groundTop){
+  CX.fillStyle = top;    CX.fillRect(0, 0, 320, 60);
+  CX.fillStyle = mid;    CX.fillRect(0, 60, 320, 70);
+  CX.fillStyle = ground; CX.fillRect(0, 130, 320, 20);
+  CX.fillStyle = groundTop; CX.fillRect(0, 128, 320, 3);
+}
+function stars(n){
+  CX.fillStyle = '#e8e2ff';
+  for (let i = 0; i < n; i++) CX.fillRect((i * 53 + 17) % 320, (i * 31 + 9) % 55, 2, 2);
+}
+const BGS = {
+bridge(){ bgSky('#1c2957','#2e4a7a','#4a3b28','#6a5a3c'); stars(9);
+  CX.fillStyle = '#f5f0dc'; CX.beginPath(); CX.arc(272, 26, 13, 0, 7); CX.fill();
+  CX.fillStyle = '#1c2957'; CX.beginPath(); CX.arc(266, 22, 11, 0, 7); CX.fill();
+  CX.fillStyle = '#16324a'; CX.fillRect(120, 130, 80, 20);           // río
+  CX.fillStyle = '#5dd0ff'; for (let i = 0; i < 5; i++) CX.fillRect(126 + i * 15, 136 + (i % 2) * 5, 8, 2);
+  CX.fillStyle = '#6a5a3c'; CX.fillRect(100, 122, 24, 8); CX.fillRect(196, 122, 24, 8); // muñones del puente
+},
+swamp(){ bgSky('#14251c','#1e3a2a','#233a1c','#365426'); stars(5);
+  CX.fillStyle = '#0f2417';
+  for (let i = 0; i < 6; i++) CX.fillRect(20 + i * 52, 90, 10, 40);   // troncos
+  CX.fillStyle = '#5dd977';
+  for (let i = 0; i < 8; i++) CX.fillRect(10 + i * 40, 124, 12, 4);   // nenúfares
+  CX.fillStyle = '#89f0a5'; CX.fillRect(60, 70, 3, 3); CX.fillRect(210, 60, 3, 3); CX.fillRect(150, 80, 3, 3); // luciérnagas
+},
+mountain(){ bgSky('#232946','#3a3f66','#4c4a52','#6e6a72'); stars(12);
+  CX.fillStyle = '#565272';
+  CX.beginPath(); CX.moveTo(0,130); CX.lineTo(70,40); CX.lineTo(140,130); CX.fill();
+  CX.beginPath(); CX.moveTo(120,130); CX.lineTo(210,25); CX.lineTo(300,130); CX.fill();
+  CX.fillStyle = '#f3efff';
+  CX.beginPath(); CX.moveTo(58,55); CX.lineTo(70,40); CX.lineTo(82,55); CX.fill();
+  CX.beginPath(); CX.moveTo(196,42); CX.lineTo(210,25); CX.lineTo(224,42); CX.fill();
+},
+market(){ bgSky('#3a2c5a','#5a4480','#4a3b28','#6a5a3c'); stars(6);
+  const aw = ['#ff6b81','#ffce63','#5dd977'];
+  for (let i = 0; i < 3; i++){
+    const x = 24 + i * 100;
+    CX.fillStyle = '#3d2c1c'; CX.fillRect(x, 92, 64, 36);            // puesto
+    CX.fillStyle = aw[i];
+    for (let k = 0; k < 4; k++) CX.fillRect(x - 4 + k * 18, 84, 16, 8); // toldo
+  }
+},
+forest(){ bgSky('#0e1f16','#16311f','#1d3315','#2f4d1f'); stars(4);
+  for (let i = 0; i < 5; i++){
+    const x = 15 + i * 68;
+    CX.fillStyle = '#3d2c1c'; CX.fillRect(x + 12, 92, 10, 38);
+    CX.fillStyle = i % 2 ? '#1f4a2a' : '#2a5c33';
+    CX.beginPath(); CX.moveTo(x - 4, 96); CX.lineTo(x + 17, 34); CX.lineTo(x + 38, 96); CX.fill();
+    CX.beginPath(); CX.moveTo(x, 72); CX.lineTo(x + 17, 20); CX.lineTo(x + 34, 72); CX.fill();
+  }
+  CX.fillStyle = '#89f0a5'; CX.fillRect(50, 60, 3, 3); CX.fillRect(180, 48, 3, 3); CX.fillRect(280, 70, 3, 3);
+},
+ruins(){ bgSky('#241b45','#3a2c5a','#3f3a45','#5c5566'); stars(10);
+  CX.fillStyle = '#7a7284';
+  const cols = [[30,50,80],[90,70,60],[160,40,90],[230,80,50],[285,55,75]];
+  cols.forEach(c => {
+    CX.fillRect(c[0], 130 - c[2], 18, c[2]);
+    CX.fillStyle = '#9d94a8'; CX.fillRect(c[0] - 3, 130 - c[2] - 6, 24, 6); CX.fillStyle = '#7a7284';
+  });
+  CX.fillStyle = '#5c5566';
+  for (let i = 0; i < 7; i++) CX.fillRect(10 + i * 46, 124, 14, 5);
+},
+tower(){ bgSky('#0d0a1a','#1a1430','#241b45','#3a2c5a'); stars(14);
+  CX.fillStyle = '#141021'; CX.fillRect(226, 20, 60, 110);           // torre
+  CX.fillStyle = '#0d0a1a'; CX.beginPath(); CX.moveTo(218,24); CX.lineTo(256,-6); CX.lineTo(294,24); CX.fill();
+  CX.fillStyle = '#ffce63';
+  CX.fillRect(242, 40, 8, 10); CX.fillRect(262, 64, 8, 10); CX.fillRect(242, 90, 8, 10); // ventanas
+}
+};
+
+// -------- gráficos SVG (representaciones) --------
+function plotSVG(cfg){
+  const W = 250, H = 205, mx = 34, my = 28, gw = 180, gh = 140;
+  const xm = cfg.xmax, ym = cfg.ymax;
+  const X = v => mx + v / xm * gw, Y = v => my + gh - v / ym * gh;
+  let g = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="300" xmlns="http://www.w3.org/2000/svg">';
+  const xs = cfg.xstep || 1, ys = cfg.ystep || 1;
+  for (let v = 0; v <= xm + 1e-9; v += xs){
+    g += '<line x1="' + X(v) + '" y1="' + my + '" x2="' + X(v) + '" y2="' + (my + gh) + '" stroke="#241b45"/>';
+    g += '<text x="' + X(v) + '" y="' + (my + gh + 13) + '" fill="#9b8fc7" font-size="10" text-anchor="middle">' + (''+v).replace('.', ',') + '</text>';
+  }
+  for (let v = 0; v <= ym + 1e-9; v += ys){
+    g += '<line x1="' + mx + '" y1="' + Y(v) + '" x2="' + (mx + gw) + '" y2="' + Y(v) + '" stroke="#241b45"/>';
+    if (v > 0) g += '<text x="' + (mx - 7) + '" y="' + (Y(v) + 3.5) + '" fill="#9b8fc7" font-size="10" text-anchor="end">' + (''+v).replace('.', ',') + '</text>';
+  }
+  g += '<line x1="' + mx + '" y1="' + (my + gh) + '" x2="' + (mx + gw + 5) + '" y2="' + (my + gh) + '" stroke="#5a4a9c" stroke-width="1.5"/>';
+  g += '<line x1="' + mx + '" y1="' + (my + gh) + '" x2="' + mx + '" y2="' + (my - 5) + '" stroke="#5a4a9c" stroke-width="1.5"/>';
+  g += '<text x="' + (mx + gw / 2) + '" y="' + (H - 1) + '" fill="#9b8fc7" font-size="10" text-anchor="middle">' + (cfg.xlab || 'x') + '</text>';
+  g += '<text x="10" y="' + (my - 10) + '" fill="#9b8fc7" font-size="10">' + (cfg.ylab || 'y') + '</text>';
+  const path = cfg.pts.map(p => X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1)).join(' ');
+  g += '<polyline points="' + path + '" fill="none" stroke="#8f7bff" stroke-width="3" stroke-linejoin="round"/>';
+  (cfg.dots || []).forEach(p => g += '<circle cx="' + X(p[0]) + '" cy="' + Y(p[1]) + '" r="4" fill="#5dffa0"/>');
+  return g + '</svg>';
+}
+function fnPts(f, x0, x1, n){
+  const pts = [];
+  for (let i = 0; i <= n; i++){ const x = x0 + (x1 - x0) * i / n; pts.push([x, f(x)]); }
+  return pts;
+}
+// ============ HISTORIA Y DESAFÍOS ============
+// Gráficos reutilizados
+const SVG_LUCI = plotSVG({ xmax:4, ymax:10, ystep:2, xlab:'horas (t)', ylab:'luciérnagas L(t)',
+  pts:[[0,2],[4,10]], dots:[[0,2],[1,4],[2,6],[3,8],[4,10]] });
+const SVG_SALTO = plotSVG({ xmax:4, ymax:4, xlab:'tiempo t (s)', ylab:'altura h (m)',
+  pts:fnPts(t => -t*t + 4*t, 0, 4, 32), dots:[[2,4]] });
+const SVG_ORIGEN = plotSVG({ xmax:5, ymax:10, ystep:2, xlab:'x', ylab:'y',
+  pts:[[0,0],[5,10]], dots:[[1,2],[2,4],[3,6]] });
+const SVG_CALDERO = plotSVG({ xmax:5, ymax:80, ystep:20, xlab:'minutos', ylab:'temperatura °C',
+  pts:[[0,80],[1,60],[2,45],[3,35],[4,30],[5,28]], dots:[[0,80],[1,60],[2,45],[3,35],[4,30]] });
+const SVG_SELLOS = plotSVG({ xmax:5, ymax:10, ystep:2, xlab:'x', ylab:'y',
+  pts:[[0,10],[5,0]], dots:[[0,10],[1,8],[2,6],[3,4],[4,2]] });
+
+function multiPlot(fns){
+  let g = '<svg viewBox="0 0 260 220" width="300" xmlns="http://www.w3.org/2000/svg">';
+  const pos = [[10,10],[140,10],[10,120],[140,120]];
+  fns.forEach((o, i) => {
+    const [ox, oy] = pos[i], w = 105, h = 88;
+    g += '<rect x="' + ox + '" y="' + oy + '" width="' + w + '" height="' + h + '" fill="#0a0716" stroke="#5a4a9c"/>';
+    g += '<line x1="' + (ox + 12) + '" y1="' + (oy + h - 12) + '" x2="' + (ox + w - 6) + '" y2="' + (oy + h - 12) + '" stroke="#5a4a9c"/>';
+    g += '<line x1="' + (ox + 12) + '" y1="' + (oy + h - 12) + '" x2="' + (ox + 12) + '" y2="' + (oy + 6) + '" stroke="#5a4a9c"/>';
+    const pts = [];
+    for (let k = 0; k <= 24; k++){
+      const x = k / 24;
+      let y = o.f(x);
+      y = Math.max(0, Math.min(1, y));
+      pts.push((ox + 12 + x * (w - 22)).toFixed(1) + ',' + (oy + h - 12 - y * (h - 22)).toFixed(1));
+    }
+    g += '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#8f7bff" stroke-width="2.5"/>';
+    g += '<text x="' + (ox + w - 14) + '" y="' + (oy + 18) + '" fill="#ffce63" font-size="13" font-weight="bold">' + o.l + '</text>';
+  });
+  return g + '</svg>';
+}
+const SVG_CUATRO = multiPlot([
+  { l:'A', f:x => x },            // recta creciente
+  { l:'B', f:x => 1 - x },        // recta decreciente
+  { l:'C', f:x => 4*(x-0.5)*(x-0.5) }, // parábola
+  { l:'D', f:() => 0.5 }          // constante
+]);
+
+let _sagN = 0;
+function sagital(A, B, arrows){
+  const id = 'ar' + (++_sagN);
+  const n = Math.max(A.length, B.length);
+  const H = Math.max(150, 50 + n * 38);
+  const yA = i => H / 2 + (i - (A.length - 1) / 2) * 36;
+  const yB = i => H / 2 + (i - (B.length - 1) / 2) * 36;
+  let g = '<svg viewBox="0 0 260 ' + H + '" width="290" xmlns="http://www.w3.org/2000/svg">';
+  g += '<defs><marker id="' + id + '" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">' +
+       '<path d="M0,0 L8,4 L0,8 z" fill="#ffce63"/></marker></defs>';
+  g += '<ellipse cx="66" cy="' + (H / 2) + '" rx="44" ry="' + (H / 2 - 16) + '" fill="none" stroke="#5a4a9c" stroke-width="2"/>';
+  g += '<ellipse cx="194" cy="' + (H / 2) + '" rx="44" ry="' + (H / 2 - 16) + '" fill="none" stroke="#5a4a9c" stroke-width="2"/>';
+  g += '<text x="66" y="14" fill="#9b8fc7" font-size="13" text-anchor="middle" font-weight="bold">A</text>';
+  g += '<text x="194" y="14" fill="#9b8fc7" font-size="13" text-anchor="middle" font-weight="bold">B</text>';
+  A.forEach((e, i) => g += '<text x="66" y="' + (yA(i) + 4) + '" fill="#f3efff" font-size="14" text-anchor="middle">' + e + '</text>');
+  B.forEach((e, i) => g += '<text x="194" y="' + (yB(i) + 4) + '" fill="#f3efff" font-size="14" text-anchor="middle">' + e + '</text>');
+  arrows.forEach(a => g += '<line x1="88" y1="' + yA(a[0]) + '" x2="164" y2="' + yB(a[1]) +
+    '" stroke="#ffce63" stroke-width="2" marker-end="url(#' + id + ')"/>');
+  return g + '</svg>';
+}
+const D_FUN1  = sagital(['1','2','3'], ['2','4','6'], [[0,0],[1,1],[2,2]]);
+const D_NOFUN = sagital(['1','2','3'], ['x','y','z'], [[0,0],[1,1],[1,2],[2,2]]);
+const D_SHARE = sagital(['Ana','Juan','Sol'], ['3°A','3°B'], [[0,0],[1,0],[2,1]]);
+const D_MISS  = sagital(['1','2','3'], ['a','b','c'], [[0,0],[1,1]]);
+const D_CODOM = sagital(['1','2','3'], ['2','4','6','9'], [[0,0],[1,1],[2,2]]);
+
+const N = 'Narrador';
+const ZONES = [
+// ---------------- ZONA 1 ----------------
+{ id:'bridge', name:'El Puente Roto', icon:'🌉', bg:'bridge', need:[],
+  steps:[
+  { t:'say', who:N, text:'El reino de Cartesia está en silencio. El Gran Cartógrafo — quien escribía las REGLAS que gobiernan cada criatura — desapareció en su torre.\n\nSin reglas, el caos crece. Tu viaje comienza en el puente del río Eje.' },
+  { t:'show', foe:'npc' },
+  { t:'say', who:'Guardia del puente', text:'¡Alto ahí! El puente está roto: una Babosa Numérica devoró los tablones.\n\nCada tablón obedecía una regla del Cartógrafo… pero ya nadie sabe leerlas. ¿Sabes tú de funciones?' },
+  { t:'choice', who:'Guardia del puente', text:'¿Me ayudarás a expulsar a la babosa?', opts:[
+    { txt:'¡Para eso vine! ⚔️', jump:'b_fight' },
+    { txt:'¿Y qué gano yo con esto?', jump:'b_greedy' }
+  ]},
+  { t:'label', id:'b_greedy' },
+  { t:'say', who:'Guardia del puente', text:'Ja, ja. Directo al grano, como una recta de pendiente infinita.\n\nSi me ayudas te daré una POCIÓN 🧪 que restaura 2 corazones. ¿Trato?' },
+  { t:'label', id:'b_fight' },
+  { t:'say', who:'Guardia del puente', text:'Escucha bien: las criaturas descontroladas anuncian sus ataques con REGLAS. Si evalúas la función más rápido que ellas, podrás esquivar y contraatacar.\n\n¡Ahí viene! ¡Suerte!' },
+  { t:'battle', foe:'slime', name:'Babosa Numérica', hp:3, qs:[
+    { t:'input', q:'La babosa escupe baba con fuerza f(x) = 2x + 1, donde x es la cantidad de saltos que dio. Acaba de dar 4 saltos.\n\n¡Evalúa f(4) para esquivar el golpe!', a:['9'], fb:'f(4) = 2·4 + 1 = 9. Evaluar = sustituir la entrada en la regla.' },
+    { t:'input', q:'¡La babosa se encoge para embestir! Su tamaño sigue la regla g(x) = x² − 5.\n\nCalcula g(3) para saber dónde apuntar tu espada.', a:['4'], fb:'g(3) = 3² − 5 = 9 − 5 = 4.' },
+    { t:'mc', q:'La babosa vibra siguiendo f(x) = 3x − 2. Para predecir su próximo movimiento, ¿cuál TABLA describe su regla?', o:[
+      'x: 1, 2, 3  →  f(x): 1, 4, 7',
+      'x: 1, 2, 3  →  f(x): 3, 6, 9',
+      'x: 1, 2, 3  →  f(x): 1, 3, 5',
+      'x: 1, 2, 3  →  f(x): 2, 4, 6'], a:0,
+      fb:'f(1) = 1, f(2) = 4, f(3) = 7. Una regla y su tabla son la MISMA función en dos representaciones.' },
+    { t:'input', q:'¡Último esfuerzo! La babosa huye a velocidad h(x) = |x − 7|, con x = 4.\n\nEvalúa h(4) y córtale el paso.', a:['3'], fb:'|4 − 7| = |−3| = 3. El valor absoluto nunca es negativo.' }
+  ]},
+  { t:'say', who:'Guardia del puente', text:'¡Increíble! La babosa huyó chorreando decimales.\n\nPero el puente sigue roto. Mira: los tablones mágicos dejaron esta tabla de medidas…' },
+  { t:'q', q:{ t:'mc', q:'Tabla de los tablones:\nx (n° tablón): 1, 2, 3, 4\nlargo (palmos): 4, 7, 10, 13\n\n¿Qué REGLA repara el puente?', o:[
+      'f(x) = 3x + 1', 'f(x) = 4x', 'f(x) = x + 3', 'f(x) = 2x + 2'], a:0,
+      fb:'De 4 a 7 hay +3 por cada paso (pendiente 3), y hacia atrás en x = 0 daría 1. Por eso f(x) = 3x + 1: pasar de tabla a expresión es leer el patrón.' } },
+  { t:'item', pot:1, xp:10, text:'El puente se reconstruye tablón por tablón. El guardia cumple su palabra: ganas una POCIÓN 🧪 (+10 XP extra).' },
+  { t:'say', who:'Guardia del puente', text:'Cruza con cuidado: tras el puente empieza el Bosque de los Diagramas, donde el Cartógrafo colgaba sus mapas de flechas.\n\nDespués el camino se divide… pero eso lo verás tú mismo. ¡Suerte, héroe!' }
+]},
+// ---------------- ZONA 2: BOSQUE ----------------
+{ id:'forest', name:'Bosque de los Diagramas', icon:'🌲', bg:'forest', need:['bridge'],
+  steps:[
+  { t:'say', who:N, text:'Entras al Bosque de los Diagramas. De cada rama cuelgan mapas de flechas del Cartógrafo: conjuntos conectados por correspondencias.\n\nEn el tronco del Roble Anciano hay una definición tallada… incompleta.' },
+  { t:'q', q:{ t:'mc', q:'La talla del Roble Anciano dice:\n\n"Una función f de A en B es una regla que asigna ___"\n\nComplétala para que el bosque te deje pasar.', o:[
+      'a cada elemento de A exactamente un elemento de B',
+      'a cada elemento de B exactamente un elemento de A',
+      'a algunos elementos de A un elemento de B',
+      'a cada elemento de A uno o más elementos de B'], a:0,
+      fb:'CADA entrada de A debe tener imagen, y EXACTAMENTE UNA. Esa doble condición (existencia + unicidad) es el corazón del concepto.' } },
+  { t:'show', foe:'ghost' },
+  { t:'say', who:'Fantasma del Archivo', text:'Uuuh… yo era el archivista del Cartógrafo. Ahora custodio sus diagramas sagitales…\n\nSi no distingues cuáles son funciones y cuáles no, te quedarás aquí conmigo. PARA SIEMPRE.' },
+  { t:'battle', foe:'ghost', name:'Fantasma del Archivo', hp:3, qs:[
+    { t:'mc', q:'El fantasma agita este diagrama ante ti:\n\n¿Es una función de A en B?', svg:D_FUN1, o:[
+      'Sí: cada elemento de A tiene exactamente una imagen',
+      'No: sobran elementos en B',
+      'No: las flechas van todas hacia el mismo lado',
+      'Sí: porque A y B tienen igual cantidad de elementos'], a:0,
+      fb:'De cada elemento de A sale UNA sola flecha: es función. (Que sobren o falten elementos en B no importa.)' },
+    { t:'mc', q:'"¿Y ESTE?", aúlla el fantasma:\n\n¿Es una función de A en B?', svg:D_NOFUN, o:[
+      'No: el 2 tiene DOS imágenes distintas',
+      'Sí: todas las entradas tienen flecha',
+      'No: el 1 y el 3 comparten imagen',
+      'Sí: hay exactamente 4 flechas'], a:0,
+      fb:'Del 2 salen dos flechas (hacia y, z): una entrada con dos salidas rompe la unicidad. NO es función.' },
+    { t:'mc', q:'El fantasma sonríe: "Este confunde a todos…"\n\nAna y Juan van al mismo curso. ¿Es función?', svg:D_SHARE, o:[
+      'Sí: compartir imagen está permitido',
+      'No: dos flechas llegan a 3°A',
+      'No: 3°B recibe solo una flecha',
+      'Solo si Ana y Juan son hermanos'], a:0,
+      fb:'Varias entradas → una misma salida es VÁLIDO. Lo prohibido es lo contrario: una entrada con varias salidas.' },
+    { t:'mc', q:'"¡Último diagrama!", ruge:\n\n¿Es una función de A en B?', svg:D_MISS, o:[
+      'No: el 3 se quedó sin imagen',
+      'Sí: las flechas que hay están bien',
+      'Sí: con 2 flechas basta',
+      'No: b y c están desordenados'], a:0,
+      fb:'TODAS las entradas deben tener salida. El 3 no tiene flecha, así que la regla no es función de A en B.' }
+  ]},
+  { t:'say', who:'Fantasma del Archivo', text:'Uuuh… nadie había leído mis diagramas así desde el amo…\n\nUna última cosa, y el bosque será tuyo: mira este mapa con atención.' },
+  { t:'q', q:{ t:'mc', q:'En este diagrama, ¿cuál es el RECORRIDO (las imágenes que sí se alcanzan)?', svg:D_CODOM, o:[
+      '{2, 4, 6}', '{2, 4, 6, 9}', '{1, 2, 3}', '{9}'], a:0,
+      fb:'El recorrido son las salidas ALCANZADAS: 2, 4 y 6. El 9 pertenece a B (codominio) pero ninguna flecha llega a él.' } },
+  { t:'item', pot:1, xp:10, text:'El fantasma te entrega una POCIÓN 🧪 de rocío de archivo (+10 XP) y se desvanece en paz.\n\nMás adelante el camino se divide: Pantano de las Tablas o Montaña del Eco. Ambos llevan a las Ruinas.' }
+]},
+// ---------------- ZONA 3A ----------------
+{ id:'swamp', name:'Pantano de las Tablas', icon:'🐸', bg:'swamp', need:['forest'], route:'A',
+  steps:[
+  { t:'say', who:N, text:'El pantano brilla con luciérnagas que se multiplican sin control. Un cartel medio hundido dice:\n\n"Quien no sepa leer un gráfico, que no entre."' },
+  { t:'q', q:{ t:'mc', q:'El gráfico muestra cuántas luciérnagas L(t) aparecen tras t horas. Para cruzar el lodo debes elegir la TABLA que corresponde al gráfico.', svg:SVG_LUCI, o:[
+      't: 0, 1, 2, 3  →  L: 2, 4, 6, 8',
+      't: 0, 1, 2, 3  →  L: 0, 2, 4, 6',
+      't: 0, 1, 2, 3  →  L: 2, 3, 4, 5',
+      't: 0, 1, 2, 3  →  L: 4, 6, 8, 10'], a:0,
+      fb:'La recta parte en (0, 2) y sube 2 por hora: pasar del gráfico a la tabla es leer puntos. L(t) = 2t + 2.' } },
+  { t:'show', foe:'toad' },
+  { t:'say', who:'Sapo Cartesiano', text:'¡Croac! ¿Un héroe que lee gráficos? Yo salto en parábolas y nadie ha predicho jamás mi trayectoria. ¡Demuéstralo o húndete!' },
+  { t:'battle', foe:'toad', name:'Sapo Cartesiano', hp:3, qs:[
+    { t:'input', q:'El sapo salta y su altura sigue el gráfico de h(t).\n\n¿Cuál es la altura MÁXIMA del salto (en metros)? ¡Golpea en la cima!', svg:SVG_SALTO, a:['4'], fb:'El punto más alto de la curva está a altura 4 (en t = 2 s). El gráfico ES la función: su altura es el valor.' },
+    { t:'mc', q:'El sapo canta con potencia según esta tabla:\nx: 0, 1, 2, 3\ny: 1, 2, 5, 10\n\n¿Qué regla sigue su canto? ¡Desactívalo!', o:[
+      'y = x² + 1', 'y = 2x + 1', 'y = 3x − 1', 'y = x³'], a:0,
+      fb:'0²+1=1, 1²+1=2, 2²+1=5, 3²+1=10 ✔. Prueba la regla con TODOS los pares de la tabla, no solo el primero.' },
+    { t:'input', q:'Sus renacuajos avanzan según el gráfico (una recta que pasa por el origen).\n\nSi el patrón continúa, ¿cuánto vale y cuando x = 5?', svg:SVG_ORIGEN, a:['10'], fb:'La recta sube 2 por cada 1 de x: y = 2x. Entonces y(5) = 10. Extender el patrón es usar la expresión algebraica.' },
+    { t:'mc', q:'El sapo se infla siguiendo V(x) = x² − x. ¿Cuál tabla lo delata?', o:[
+      'x: 1, 2, 3  →  V: 0, 2, 6',
+      'x: 1, 2, 3  →  V: 1, 2, 3',
+      'x: 1, 2, 3  →  V: 0, 4, 9',
+      'x: 1, 2, 3  →  V: 2, 4, 6'], a:0,
+      fb:'V(1) = 1−1 = 0, V(2) = 4−2 = 2, V(3) = 9−3 = 6.' }
+  ]},
+  { t:'item', pot:1, xp:10, text:'El sapo, vencido, te regala una POCIÓN 🧪 destilada de nenúfar (+10 XP). "Croac… nadie había leído mis gráficos tan rápido."' }
+]},
+// ---------------- ZONA 2B ----------------
+{ id:'mountain', name:'Montaña del Eco', icon:'⛰️', bg:'mountain', need:['forest'], route:'A',
+  steps:[
+  { t:'say', who:N, text:'En la Montaña del Eco, las palabras se transforman en números. Los viejos mineros describían las reglas HABLANDO, sin fórmulas.\n\nTraducir palabras a álgebra: ese es el peaje.' },
+  { t:'q', q:{ t:'mc', q:'La montaña susurra:\n\n"El eco DUPLICA la fuerza de tu grito y le AGREGA 3."\n\n¿Qué expresión algebraica es el eco?', o:[
+      'E(x) = 2x + 3', 'E(x) = x² + 3', 'E(x) = 3x + 2', 'E(x) = 2(x + 3)'], a:0,
+      fb:'"Duplica" = 2x, "agrega 3" = +3. Traducir lenguaje verbal a expresión es otra forma de representar la MISMA función.' } },
+  { t:'show', foe:'bat' },
+  { t:'say', who:'Harpía Algebraica', text:'¡Skree! ¿Traduces palabras a símbolos, insecto? Yo vuelo donde las fórmulas no alcanzan. ¡Que empiece la tormenta!' },
+  { t:'battle', foe:'bat', name:'Harpía Algebraica', hp:3, qs:[
+    { t:'input', q:'Tu grito rebota con el eco E(x) = 2x + 3. Gritas con fuerza x = 6.\n\n¿Con qué fuerza vuelve el eco? ¡Úsalo contra la harpía!', a:['15'], fb:'E(6) = 2·6 + 3 = 15.' },
+    { t:'mc', q:'La harpía invoca un viento que describe así:\n\n"Resto UNA unidad al DOBLE de tu paso."\n\n¿Qué expresión es el viento?', o:[
+      'v(x) = 2x − 1', 'v(x) = x − 2', 'v(x) = 2(x − 1)', 'v(x) = 1 − 2x'], a:0,
+      fb:'"Doble de tu paso" = 2x, "resto una unidad" = −1. Ojo: 2(x−1) = 2x−2 es OTRA función.' },
+    { t:'input', q:'Su chillido tiene potencia f(x) = x² + 1. Ahora chilla con x = −2.\n\nEvalúa f(−2)… ¡y cuidado con el signo!', a:['5'], fb:'(−2)² = 4, más 1 = 5. Elevar al cuadrado un negativo da positivo.' },
+    { t:'input', q:'La harpía se protege con un escudo de energía f(x) = 2(x − 1)².\n\nLánzale una piedra con x = 4: ¿cuánta energía absorbe el escudo?', a:['18'], fb:'f(4) = 2·(4−1)² = 2·9 = 18. Primero el paréntesis, luego el cuadrado, al final el producto.' }
+  ]},
+  { t:'item', pot:1, xp:10, text:'La harpía cae rendida y deja caer una POCIÓN 🧪 de niebla de cumbre (+10 XP). El paso está libre.' }
+]},
+// ---------------- ZONA 4: RUINAS ----------------
+{ id:'ruins', name:'Ruinas del Archivo', icon:'🏛️', bg:'ruins', need:['swamp|mountain'],
+  steps:[
+  { t:'say', who:N, text:'Las Ruinas del Archivo: aquí el Cartógrafo guardaba tablillas con DATOS de todo el reino.\n\nLa Sombra borró las reglas… pero los datos sobrevivieron. Quien sepa reconstruir la fórmula desde los datos, reconstruye el poder del archivo.' },
+  { t:'q', q:{ t:'mc', q:'Una tablilla en la entrada registra pares (x, y):\n\n(0, 3), (1, 5), (2, 7), (3, 9)\n\n¿Qué función escribió aquí el Cartógrafo?', o:[
+      'f(x) = 2x + 3', 'f(x) = 3x + 2', 'f(x) = x + 3', 'f(x) = 3x'], a:0,
+      fb:'La salida sube 2 por cada paso de x (pendiente 2) y en x = 0 vale 3 (coeficiente de posición). f(x) = 2x + 3. ¡Verifica con TODOS los pares!' } },
+  { t:'show', foe:'golem' },
+  { t:'say', who:'Gólem de los Datos', text:'DATOS… SIN… REGLA. YO GUARDO NÚMEROS. TÚ NO PASAS.\n\nSI QUIERES EL CAMINO… CONSTRUYE LAS FÓRMULAS QUE PERDÍ.' },
+  { t:'battle', foe:'golem', name:'Gólem de los Datos', hp:4, qs:[
+    { t:'input', q:'El gólem pisa fuerte y el suelo tiembla según la tabla:\n\nx: 1, 2, 3, 4\ny: 2, 4, 6, 8\n\nEs una proporcionalidad directa y = k·x. ¡Escribe el valor de k para frenarlo!', a:['2'], fb:'y ÷ x = 2 en toda la tabla: la constante de proporcionalidad es k = 2, o sea y = 2x.' },
+    { t:'mc', q:'En su pecho hay grabados de un antiguo mensajero:\n\n1 paquete → 8 monedas\n2 paquetes → 11 monedas\n3 paquetes → 14 monedas\n\n¿Qué función de costo talló el Cartógrafo?', o:[
+      'C(x) = 3x + 5', 'C(x) = 8x', 'C(x) = 5x + 3', 'C(x) = 3x + 8'], a:0,
+      fb:'Cada paquete extra suma 3 (pendiente 3). Retrocediendo a x = 0 quedan 5 fijas: C(x) = 3x + 5. Comprueba: C(1) = 8 ✔.' },
+    { t:'mc', q:'El gólem lanza rocas que se ENFRÍAN al volar:\n\nx: 0, 1, 2, 3\ny: 5, 3, 1, −1\n\n¿Qué regla siguen? ¡Esquívalas!', o:[
+      'f(x) = −2x + 5', 'f(x) = 2x + 5', 'f(x) = −x + 5', 'f(x) = 5x − 2'], a:0,
+      fb:'La salida BAJA 2 por paso: pendiente −2. Parte en 5: f(x) = −2x + 5. Una tabla que decrece pide pendiente negativa.' },
+    { t:'mc', q:'Su núcleo pulsa con esta secuencia:\n\nx: 0, 1, 2, 3\ny: 0, 1, 4, 9\n\n¿Cuál es la regla del núcleo? ¡Golpéalo ahí!', o:[
+      'f(x) = x²', 'f(x) = 2x', 'f(x) = 2x − 1', 'f(x) = x + 1'], a:0,
+      fb:'0, 1, 4, 9 son cuadrados perfectos: f(x) = x². Nota que aquí el aumento por paso NO es constante — no toda tabla es una recta.' },
+    { t:'mc', q:'El gólem tambalea y pregunta con voz de piedra:\n\n"EN C(x) = 3x + 5… ¿QUÉ ES x?"', o:[
+      'La variable independiente: la que se elige libremente',
+      'La variable dependiente: queda determinada por C',
+      'Una constante fija del problema',
+      'El recorrido de la función'], a:0,
+      fb:'x (los paquetes) se elige libremente: variable INDEPENDIENTE. El costo C(x) depende de ella: variable DEPENDIENTE.' }
+  ]},
+  { t:'say', who:'Gólem de los Datos', text:'FÓRMULAS… RECONSTRUIDAS. TÚ… ERES COMO ÉL.\n\nÚLTIMO DATO. MI TESORO. LA BALANZA DEL ARCHIVO…' },
+  { t:'q', q:{ t:'input', q:'La balanza de resorte del archivo registró:\n\nmasa (kg):        0,5 | 1 | 1,5 | 2\nelongación (cm):   2  | 4 |  6  | 8\n\nLa regla es e = k·m. Escribe el valor de k para calibrarla.', a:['4'], fb:'e ÷ m = 4 en todas las mediciones: e(m) = 4m. Así se gradúa una balanza real: encontrando la constante desde los DATOS.' } },
+  { t:'item', pot:1, xp:15, text:'El gólem se arrodilla y te entrega una POCIÓN 🧪 de polvo de archivo (+15 XP).\n\n"EL MERCADO… TE ESPERA."' }
+]},
+// ---------------- ZONA 5 ----------------
+{ id:'market', name:'Mercado de Piedra', icon:'🏪', bg:'market', need:['ruins'],
+  steps:[
+  { t:'say', who:N, text:'El Mercado de Piedra: el único lugar del reino donde aún se comercia… aunque sin las reglas del Cartógrafo, ya nadie sabe cuánto cobrar.' },
+  { t:'show', foe:'npc' },
+  { t:'say', who:'Mercader Baldomero', text:'¡Adelante, héroe! Necesitarás provisiones para la torre.\n\nMi tarifa es simple: cobro 5 monedas fijas por atenderte, más 2 monedas por cada manzana. ¡Sin trampas!' },
+  { t:'q', q:{ t:'mc', q:'Antes de comprar, MODELA la tarifa de Baldomero:\n"5 monedas fijas más 2 por cada manzana (x)".\n\n¿Cuál es la función de costo?', o:[
+      'C(x) = 2x + 5', 'C(x) = 5x + 2', 'C(x) = 7x', 'C(x) = 2x − 5'], a:0,
+      fb:'Lo fijo (5) no depende de x; lo variable (2 por manzana) sí: C(x) = 2x + 5. Eso es MODELAR: escribir la regla de una situación real.' } },
+  { t:'q', q:{ t:'input', q:'Baldomero sonríe: "Llevas 6 manzanas, ¿cuánto me pagas?"\n\nEvalúa C(6) — si aciertas, te regala el vuelto en pociones.', a:['17'], fb:'C(6) = 2·6 + 5 = 17 monedas.' } },
+  { t:'item', pot:1, xp:5, text:'"¡Cuentas claras!" — Baldomero te regala una POCIÓN 🧪 de jugo de manzana concentrado.' },
+  { t:'choice', who:N, text:'Al salir, una anciana revuelve un caldero humeante y te llama con la mano. La torre te espera… pero ella parece necesitar ayuda.', opts:[
+    { txt:'Ayudar a la anciana 🍲', jump:'m_help' },
+    { txt:'Seguir directo a la torre →', jump:'m_go' }
+  ]},
+  { t:'label', id:'m_help' },
+  { t:'say', who:'Anciana del caldero', text:'Mi pócima debe embotellarse JUSTO a 45 °C, ni antes ni después. Este pergamino muestra cómo se enfría… pero mis ojos ya no leen gráficos.' },
+  { t:'q', q:{ t:'mc', q:'El gráfico muestra la temperatura de la pócima minuto a minuto.\n\n¿En qué minuto llega EXACTAMENTE a 45 °C?', svg:SVG_CALDERO, o:[
+      'minuto 2', 'minuto 1', 'minuto 3', 'minuto 4'], a:0,
+      fb:'En t = 2 la curva pasa por 45 °C. Interpretar un gráfico es responder preguntas de la situación real.' } },
+  { t:'item', pot:1, xp:15, text:'La anciana embotella su pócima a tiempo y te da una POCIÓN 🧪 y su bendición (+15 XP). "La torre teme a quien lee las cuatro lenguas de una función", murmura.' },
+  { t:'label', id:'m_go' },
+  { t:'say', who:N, text:'El camino de piedra termina. Frente a ti, negra contra las estrellas, se alza la TORRE DEL CARTÓGRAFO.' }
+]},
+// ---------------- ZONA 4 ----------------
+{ id:'tower', name:'La Torre del Cartógrafo', icon:'🗼', bg:'tower', need:['market'],
+  steps:[
+  { t:'say', who:N, text:'Subes la escalera en espiral. En la cima, sobre los mapas del reino, flota una figura de tinta y sombra…' },
+  { t:'show', foe:'boss' },
+  { t:'say', who:'La Sombra del Cartógrafo', text:'Yo devoré al Cartógrafo y sus reglas me pertenecen. ¿Crees poder enfrentarme?\n\nUna función tiene CUATRO rostros: palabra, tabla, gráfico y fórmula. Domínalos todos… o sé mi sirviente.' },
+  { t:'choice', who:'La Sombra del Cartógrafo', text:'"¿Unas últimas palabras, héroe?"', opts:[
+    { txt:'Las funciones no te pertenecen. ¡Libera al Cartógrafo!', jump:'t_fight' },
+    { txt:'(Responder solo con la espada) ⚔️', jump:'t_fight' }
+  ]},
+  { t:'label', id:'t_fight' },
+  { t:'battle', foe:'boss', name:'La Sombra del Cartógrafo', hp:5, qs:[
+    { t:'input', q:'ROSTRO 1 — LA FÓRMULA ⚡\n\n"Mi hechizo golpea con S(x) = 3x² − 2x. Lo lanzo con x = 2."\n\n¡Evalúa S(2) y desvíalo!', a:['8'], fb:'S(2) = 3·4 − 2·2 = 12 − 4 = 8.' },
+    { t:'mc', q:'ROSTRO 2 — EL GRÁFICO 📉\n\n"Mi escudo se debilita como muestra esta recta. ¡Adivina su tabla y lo atravesarás!"', svg:SVG_SELLOS, o:[
+      'x: 0, 1, 2  →  y: 10, 8, 6',
+      'x: 0, 1, 2  →  y: 10, 9, 8',
+      'x: 0, 1, 2  →  y: 8, 6, 4',
+      'x: 0, 1, 2  →  y: 10, 5, 0'], a:0,
+      fb:'La recta parte en (0, 10) y baja 2 por paso: y = 10 − 2x. Gráfico y tabla: dos rostros de lo mismo.' },
+    { t:'mc', q:'ROSTRO 3 — LA TABLA 🔢\n\n"Mis golems marchan así:\nx: 1, 2, 3, 4\npasos: 1, 4, 9, 16\n\n¿Qué regla los mueve?"', o:[
+      'f(x) = x²', 'f(x) = 2x − 1', 'f(x) = 4x − 3', 'f(x) = x + 3'], a:0,
+      fb:'1, 4, 9, 16 son los cuadrados. Ojo: 2x−1 y 4x−3 funcionan en x = 1, pero fallan después. ¡Verifica con TODA la tabla!' },
+    { t:'mc', q:'ROSTRO 4 — LOS CUATRO GRÁFICOS 🗺️\n\n"Me esconderé en el gráfico de f(x) = −x + 4. ¿En cuál estoy?"', svg:SVG_CUATRO, o:[
+      'Gráfico B', 'Gráfico A', 'Gráfico C', 'Gráfico D'], a:0,
+      fb:'Pendiente −1 (baja) y parte arriba (4): la recta DECRECIENTE es B. A sube, C es parábola, D es constante.' },
+    { t:'input', q:'GOLPE FINAL 💥\n\n"¡La torre está atada con 12 sellos y solo se rompen de a 3 por minuto! S(t) = 12 − 3t.\n\n¿En cuántos minutos t los sellos llegan a CERO?"', a:['4'], fb:'12 − 3t = 0 → t = 4. Encontrar la entrada que produce una salida: leer la función al revés.' }
+  ]},
+  { t:'hide' },
+  { t:'say', who:N, text:'La Sombra se deshace en tinta. De los mapas del suelo se levanta un anciano de barba enredada: el Gran Cartógrafo.' },
+  { t:'show', foe:'npc' },
+  { t:'say', who:'El Gran Cartógrafo', text:'Palabra, tabla, gráfico y fórmula… Leíste los cuatro rostros de las funciones, algo que ni mi sombra logró.\n\nEl reino vuelve a tener reglas. Y tú, héroe, tienes mi gratitud eterna.' },
+  { t:'item', xp:25, text:'🏅 Recibes la Insignia del Cartógrafo (+25 XP).' }
+]}
+];
+// ============ MOTOR ============
+const $ = id => document.getElementById(id);
+const KEY = 'TORRE-CARTOGRAFO-2026';
+const PIN = '2026';
+const STORE = 'torre_cartografo_v2';
+
+let S = { name:'', hp:5, maxhp:5, pot:1, xp:0, correct:0, answered:0, done:{}, start:0, mins:0 };
+let R = { z:-1, si:0, awaitTap:false, typing:null, fullText:'', q:null, inBattle:false,
+          battle:null, foe:null, retryQ:false, onTap:null };
+const FX = { shake:0, flash:0, t:0 };
+
+// ---------- utilidades ----------
+function show(id){
+  ['scr-title','scr-game','scr-map','scr-over','scr-end','scr-teacher'].forEach(s => $(s).classList.add('hidden'));
+  $(id).classList.remove('hidden');
+  const inGame = id === 'scr-game';
+  $('hud').classList.toggle('hidden', !inGame);
+  $('stage-wrap').classList.toggle('hidden', !inGame);
+  window.scrollTo(0, 0);
+}
+function shuffle(a){ a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function save(){ try { localStorage.setItem(STORE, JSON.stringify(S)); } catch(e){} }
+function load(){ try { return JSON.parse(localStorage.getItem(STORE) || 'null'); } catch(e){ return null; } }
+function norm(s){ return String(s).trim().toLowerCase().replace(/\s+/g,'').replace(/,/g,'.').replace(/−/g,'-'); }
+function updHud(){
+  $('hud-hearts').textContent = '♥'.repeat(S.hp) + '♡'.repeat(S.maxhp - S.hp);
+  $('hud-pot').textContent = S.pot;
+  $('hud-xp').textContent = S.xp;
+}
+
+// ---------- código de finalización ----------
+function toBytes(str){ return Array.from(new TextEncoder().encode(str)); }
+function fromBytes(b){ return new TextDecoder().decode(new Uint8Array(b)); }
+function encCode(payload){
+  const kb = toBytes(KEY), pb = toBytes(payload);
+  const x = pb.map((b, i) => b ^ kb[i % kb.length]);
+  let hex = x.map(b => b.toString(16).padStart(2, '0')).join('');
+  const cs = (x.reduce((s, b) => s + b, 0) % 97).toString(16).padStart(2, '0');
+  return (hex + cs).toUpperCase().match(/.{1,5}/g).join('-');
+}
+function decCode(code){
+  const hex = String(code).replace(/[-\s]/g, '').toLowerCase();
+  if (hex.length < 6 || hex.length % 2 || /[^0-9a-f]/.test(hex)) return null;
+  const body = hex.slice(0, -2), cs = parseInt(hex.slice(-2), 16);
+  const x = body.match(/.{2}/g).map(h => parseInt(h, 16));
+  if (x.reduce((s, b) => s + b, 0) % 97 !== cs) return null;
+  const kb = toBytes(KEY);
+  try {
+    const p = fromBytes(x.map((b, i) => b ^ kb[i % kb.length])).split('|');
+    if (p.length !== 5) return null;
+    return { nombre:p[0], xp:p[1], correctas:p[2], intentos:p[3], minutos:p[4] };
+  } catch(e){ return null; }
+}
+
+// ---------- render del escenario ----------
+function draw(ts){
+  FX.t = ts;
+  CX.save();
+  if (FX.shake > 0){ CX.translate((Math.random() - .5) * 6, (Math.random() - .5) * 6); FX.shake--; }
+  CX.fillStyle = '#000'; CX.fillRect(-10, -10, 340, 170);
+  const z = ZONES[R.z];
+  if (z && BGS[z.bg]) BGS[z.bg]();
+  // héroe
+  const hb = Math.round(Math.sin(ts / 300) * 2);
+  drawSprite('hero', 42, 128 - 48 + hb, 3, false);
+  // criatura / NPC
+  if (R.foe){
+    const sp = SPR[R.foe], sc = (R.foe === 'hero' || R.foe === 'npc') ? 3 : 4;
+    const h = sp.px.length * sc, w = sp.px[0].length * sc;
+    const fb2 = Math.round(Math.sin(ts / 260 + 2) * 3);
+    const fx = 310 - w, fy = 128 - h + fb2;
+    drawSprite(R.foe, fx, fy, sc, true);
+    if (FX.flash > 0){
+      CX.fillStyle = 'rgba(255,255,255,' + (FX.flash / 10) + ')';
+      CX.fillRect(fx - 4, fy - 4, w + 8, h + 8);
+      FX.flash--;
+    }
+  }
+  CX.restore();
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// ---------- sistema de diálogo ----------
+function typeText(who, text, cb){
+  $('dlg-who').textContent = who || '';
+  const el = $('dlg-text');
+  el.textContent = '';
+  R.fullText = text;
+  R.typeDone = cb || null;
+  let i = 0;
+  clearInterval(R.typing);
+  R.typing = setInterval(() => {
+    i += 2;
+    el.textContent = text.slice(0, i);
+    if (i >= text.length){
+      clearInterval(R.typing); R.typing = null;
+      const f = R.typeDone; R.typeDone = null; if (f) f();
+    }
+  }, 16);
+}
+function skipType(){
+  if (R.typing){
+    clearInterval(R.typing); R.typing = null;
+    $('dlg-text').textContent = R.fullText;
+    const f = R.typeDone; R.typeDone = null; if (f) f();
+    return true;
+  }
+  return false;
+}
+function clearUI(){
+  $('dlg-opts').innerHTML = '';
+  $('dlg-svg').classList.add('hidden');
+  $('dlg-inputwrap').classList.add('hidden');
+  $('fb').className = ''; $('fb').style.display = 'none';
+  $('dlg-tap').classList.add('hidden');
+}
+$('dlg').addEventListener('click', () => {
+  if (skipType()) return;
+  if (R.awaitTap && R.onTap){ R.awaitTap = false; const f = R.onTap; R.onTap = null; f(); }
+});
+function waitTap(cb){ R.awaitTap = true; R.onTap = cb; $('dlg-tap').classList.remove('hidden'); }
+
+// ---------- ejecutor de pasos ----------
+function runZone(zi){ R.z = zi; R.si = 0; R.foe = null; $('zone-tag').textContent = ZONES[zi].icon + ' ' + ZONES[zi].name; show('scr-game'); updHud(); step(); }
+function step(){
+  const z = ZONES[R.z];
+  if (R.si >= z.steps.length){ return zoneDone(); }
+  const st = z.steps[R.si];
+  clearUI();
+  switch (st.t){
+    case 'label': R.si++; return step();
+    case 'show': R.foe = st.foe; R.si++; return step();
+    case 'hide': R.foe = null; R.si++; return step();
+    case 'say':
+      typeText(st.who, st.text, () => waitTap(() => { R.si++; step(); }));
+      return;
+    case 'choice': {
+      typeText(st.who, st.text, () => {
+        const box = $('dlg-opts');
+        st.opts.forEach(op => {
+          const b = document.createElement('button');
+          b.className = 'opt'; b.textContent = op.txt;
+          b.onclick = e => {
+            e.stopPropagation();
+            if (op.jump){
+              const idx = z.steps.findIndex(s2 => s2.t === 'label' && s2.id === op.jump);
+              R.si = idx >= 0 ? idx : R.si + 1;
+            } else R.si++;
+            step();
+          };
+          box.appendChild(b);
+        });
+      });
+      return;
+    }
+    case 'q':
+      R.inBattle = false;
+      askQ(st.q, ok => {
+        if (ok){ S.xp += 12; save(); waitTap(() => { R.si++; step(); }); }
+        else if (S.hp <= 0) gameOver();
+        else retryBtn(() => step());   // reintenta el mismo paso
+      });
+      return;
+    case 'battle': {
+      R.inBattle = true;
+      R.foe = st.foe;
+      R.battle = { st, bhp:st.hp, qi:0 };
+      $('foe-bar').style.display = 'flex';
+      $('foe-name').textContent = '👹 ' + st.name;
+      foeBar();
+      battleTurn();
+      return;
+    }
+    case 'item':
+      if (st.pot) S.pot = Math.min(9, S.pot + st.pot);
+      if (st.xp) S.xp += st.xp;
+      updHud(); save();
+      typeText('✨', st.text, () => waitTap(() => { R.si++; step(); }));
+      return;
+    default: R.si++; return step();
+  }
+}
+function foeBar(){
+  const b = R.battle;
+  $('foe-hp').firstElementChild.style.width = (b.bhp / b.st.hp * 100) + '%';
+}
+function battleTurn(){
+  const b = R.battle;
+  const q = b.st.qs[b.qi % b.st.qs.length];
+  b.qi++;
+  clearUI();
+  $('foe-bar').style.display = 'flex';
+  askQ(q, ok => {
+    if (ok){
+      S.xp += 15; save();
+      FX.flash = 10;
+      b.bhp--; foeBar();
+      if (b.bhp <= 0){
+        R.inBattle = false;
+        $('foe-bar').style.display = 'none';
+        S.xp += 10; save(); updHud();
+        typeText(N, '¡' + b.st.name + ' ha sido vencido! ⚔️ (+10 XP de botín)', () => waitTap(() => { R.si++; step(); }));
+      } else {
+        waitTap(battleTurn);
+      }
+    } else if (S.hp <= 0) gameOver();
+    else retryBtn(battleTurn);
+  });
+}
+function retryBtn(cb){
+  const box = $('dlg-opts');
+  const b = document.createElement('button');
+  b.className = 'opt'; b.textContent = '💢 Recuperarse y seguir luchando';
+  b.onclick = e => { e.stopPropagation(); cb(); };
+  box.appendChild(b);
+}
+function zoneDone(){
+  const z = ZONES[R.z];
+  if (!S.done[z.id]){ S.done[z.id] = true; S.xp += 10; }
+  $('foe-bar').style.display = 'none';
+  save(); updHud();
+  if (z.id === 'tower') return finishGame();
+  renderMap(); show('scr-map');
+}
+
+// ---------- preguntas ----------
+function askQ(q, done){
+  S.answered++;
+  $('dlg-who').textContent = R.inBattle ? '👹 ' + R.battle.st.name : '📜 Desafío';
+  $('dlg-text').textContent = q.q;
+  if (q.svg){ $('dlg-svg').innerHTML = q.svg; $('dlg-svg').classList.remove('hidden'); }
+  const finish = ok => {
+    const fb = $('fb');
+    if (ok){ S.correct++; fb.className = 'ok'; fb.innerHTML = '<b>⚔️ ¡Golpe certero! +' + (R.inBattle ? 15 : 12) + ' XP</b><br>' + q.fb; }
+    else {
+      S.hp--; updHud(); FX.shake = 12;
+      fb.className = 'bad'; fb.innerHTML = '<b>💔 ¡Recibes daño! (−1 corazón)</b><br>' + q.fb;
+    }
+    save();
+    done(ok);
+  };
+  if (q.t === 'input'){
+    $('dlg-inputwrap').classList.remove('hidden');
+    $('dlg-input').value = '';
+    $('btn-check').onclick = e => {
+      e.stopPropagation();
+      const v = norm($('dlg-input').value);
+      if (!v) return;
+      $('dlg-inputwrap').classList.add('hidden');
+      const ok = q.a.some(ans => norm(ans) === v || (isFinite(parseFloat(v)) && parseFloat(norm(ans)) === parseFloat(v)));
+      finish(ok);
+    };
+  } else {
+    const box = $('dlg-opts');
+    shuffle(q.o.map((t, k) => ({ t, k }))).forEach(op => {
+      const b = document.createElement('button');
+      b.className = 'opt'; b.textContent = op.t; b.dataset.k = op.k;
+      b.onclick = e => {
+        e.stopPropagation();
+        document.querySelectorAll('#dlg-opts .opt').forEach(x => {
+          x.disabled = true;
+          if (+x.dataset.k === q.a) x.classList.add('ok');
+        });
+        if (op.k !== q.a) b.classList.add('bad');
+        finish(op.k === q.a);
+      };
+      box.appendChild(b);
+    });
+  }
+}
+
+// ---------- mapa ----------
+function renderMap(){
+  $('map-hi').textContent = S.name + ' · ' + '♥'.repeat(S.hp) + ' · 🧪' + S.pot + ' · ✦' + S.xp + ' XP';
+  const list = $('map-list'); list.innerHTML = '';
+  ZONES.forEach((z, i) => {
+    const done = S.done[z.id];
+    const unlocked = z.need.every(n => n.split('|').some(id => S.done[id]));
+    const b = document.createElement('button');
+    b.className = 'node' + (done ? ' done' : '') + (!unlocked ? ' locked' : '');
+    const st = done ? '✔ Completada' : unlocked ? (z.route ? 'Ruta opcional — elige tu camino' : '¡Disponible!') : '🔒 Bloqueada';
+    b.innerHTML = '<span class="ico">' + (done ? '✅' : z.icon) + '</span><span><div class="tt">' + z.name + '</div><div class="st">' + st + '</div></span>';
+    if (unlocked && !done) b.onclick = () => runZone(i);
+    else b.disabled = true;
+    list.appendChild(b);
+  });
+}
+
+// ---------- game over / final ----------
+function gameOver(){
+  S.xp = Math.max(0, S.xp - 20); save();
+  show('scr-over');
+}
+$('btn-retry').onclick = () => {
+  S.hp = S.maxhp; updHud(); save();
+  show('scr-game');
+  if (R.inBattle){ R.battle.bhp = R.battle.st.hp; R.battle.qi = 0; foeBar(); battleTurn(); }
+  else step();
+};
+function finishGame(){
+  const mins = S.mins || Math.max(1, Math.round((Date.now() - S.start) / 60000));
+  S.mins = mins; save();
+  const pct = S.answered ? S.correct / S.answered : 0;
+  const rank = pct >= 0.9 ? '🏅 Rango: Cartógrafo/a Legendario/a' : pct >= 0.7 ? '🛡️ Rango: Caballero/Dama de las Funciones' : '🌱 Rango: Escudero/a Prometedor/a';
+  $('end-name').textContent = S.name;
+  $('end-xp').textContent = '✦ ' + S.xp + ' XP';
+  $('end-detail').textContent = S.correct + ' aciertos en ' + S.answered + ' desafíos · ' + mins + ' min de aventura';
+  $('end-rank').textContent = rank;
+  $('end-code').textContent = encCode([S.name.slice(0, 30), S.xp, S.correct, S.answered, mins].join('|'));
+  show('scr-end');
+}
+
+// ---------- eventos globales ----------
+$('btn-start').onclick = () => {
+  const n = $('in-name').value.trim();
+  if (n.length < 3){ $('in-name').placeholder = '⚠️ Escribe tu nombre y apellido real'; $('in-name').focus(); return; }
+  S = { name:n, hp:5, maxhp:5, pot:1, xp:0, correct:0, answered:0, done:{}, start:Date.now(), mins:0 };
+  save(); updHud();
+  runZone(0);
+};
+$('btn-usepot').onclick = () => {
+  if (S.pot > 0 && S.hp < S.maxhp){ S.pot--; S.hp = Math.min(S.maxhp, S.hp + 2); updHud(); save(); }
+};
+$('dlg-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-check').click(); });
+$('dlg-input').addEventListener('click', e => e.stopPropagation());
+$('btn-copy').onclick = () => {
+  const code = $('end-code').textContent;
+  const done = () => { $('btn-copy').textContent = '✅ ¡Copiado! Pégalo en Classroom'; };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done).catch(() => fallbackCopy(code, done));
+  else fallbackCopy(code, done);
+};
+function fallbackCopy(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch(e){ alert('Copia manual: ' + text); }
+  document.body.removeChild(ta);
+}
+$('btn-reset').onclick = () => {
+  if (confirm('¿Borrar toda la aventura y empezar de nuevo?')){
+    try { localStorage.removeItem(STORE); } catch(e){}
+    location.reload();
+  }
+};
+$('btn-teacher').onclick = () => {
+  const p = prompt('PIN docente:');
+  if (p === PIN){ $('t-result').innerHTML = ''; $('t-code').value = ''; show('scr-teacher'); }
+  else if (p !== null) alert('PIN incorrecto.');
+};
+$('btn-tback').onclick = () => show('scr-title');
+$('btn-decode').onclick = () => {
+  const r = decCode($('t-code').value);
+  $('t-result').innerHTML = r
+    ? '<table class="dec"><tr><td>Estudiante</td><td><b>' + r.nombre.replace(/</g,'&lt;') + '</b></td></tr>' +
+      '<tr><td>XP</td><td><b>' + r.xp + '</b></td></tr>' +
+      '<tr><td>Aciertos</td><td>' + r.correctas + ' de ' + r.intentos + ' desafíos</td></tr>' +
+      '<tr><td>Tiempo</td><td>' + r.minutos + ' min</td></tr></table>'
+    : '<p style="color:var(--bad); margin-top:10px"><b>Código inválido o alterado ✘</b></p>';
+};
+
+// ---------- arranque ----------
+(function init(){
+  const prev = load();
+  if (prev && prev.name){
+    S = prev; updHud();
+    if (S.done.tower) finishGame();
+    else if (Object.keys(S.done).length > 0){ renderMap(); show('scr-map'); }
+  }
+})();
+</script>
+</body>
+</html>
