@@ -723,7 +723,7 @@ function leaveSplash(){
   if ($('scr-splash').classList.contains('hidden')) return;
   show('scr-title');
 }
-$('scr-splash').addEventListener('click', leaveSplash);
+document.addEventListener('click', leaveSplash);
 document.addEventListener('keydown', leaveSplash);
 
 // ---------- personalización ----------
