@@ -114,6 +114,7 @@
     <span class="chip">🪙 <b id="hud-coin">0</b></span>
     <span class="chip">🖋 <b id="hud-sello">0</b>/3</span>
     <span class="chip hidden" id="hud-shield">🛡</span>
+    <span class="chip hidden" id="hud-dag">🗡 <b id="hud-dag-n">0</b></span>
     <span class="chip">✦ <b id="hud-xp">0</b></span>
     <button class="chip" id="btn-usepot" style="color:var(--ok)">Beber poción</button>
   </header>
@@ -156,7 +157,8 @@
       <h2>📜 Cómo jugar</h2>
       <div class="helpcard">❤️ <b>Corazones</b>: tu vida. Cada error en un desafío te quita 1 corazón (2 si aceptaste un Desafío del Escriba). Si llegas a 0, caes… pero puedes levantarte perdiendo 20 XP.</div>
       <div class="helpcard">🧪 <b>Pociones</b>: tocas <b>"Beber poción"</b> arriba y recuperas 2 corazones. Se ganan ayudando a personajes o comprándolas en el bazar.</div>
-      <div class="helpcard">🪙 <b>Monedas</b>: cada acierto paga monedas. Gástalas en la tienda de Baldomero: pociones o un escudo 🛡 que absorbe 1 error sin perder corazones.</div>
+      <div class="helpcard">🪙 <b>Monedas</b>: cada acierto paga monedas. Gástalas en la tienda de Baldomero: pociones, un escudo 🛡 que absorbe 1 error sin perder corazones, o la Daga de Grafito 🗡.</div>
+      <div class="helpcard">🗡 <b>Daga de Grafito</b>: arma de un solo uso que ELIMINA la pregunta en pantalla (cuenta como golpe, pero sin XP ni monedas). No sirve contra los Desafíos del Escriba. Se gana y se compra en el bazar.</div>
       <div class="helpcard">🖋 <b>Desafíos del Escriba</b>: pergaminos opcionales MÁS difíciles. Si aciertas ganas un Sello de Tinta; con los 3 sellos desbloqueas la <b>Armadura Estelar</b> ✨. Si fallas, pierdes 2 corazones. Tú decides si arriesgarte.</div>
       <div class="helpcard">✦ <b>XP y código final</b>: al terminar recibirás un código para pegar en Classroom. Incluye tu nombre cifrado: es personal e intransferible.</div>
       <button class="btn" id="btn-helpback">Volver</button>
@@ -456,7 +458,7 @@ const ZONES = [
     { t:'mc', q:'Chilla con h(x) = 4x + 1.\n\nh(3) = ?', o:['13','12','9','43'], a:0, fb:'h(3) = 4·3 + 1 = 13.' },
     { t:'input', q:'Huye a velocidad f(x) = −x + 9, con x = 5.\n\n¿f(5)?', a:['4'], fb:'f(5) = −5 + 9 = 4. Cuida el signo de m = −1.' }
   ]},
-  { t:'say', who:'Capitán del Puente', text:'¡Espléndido! Mira el canal: la tinta está bajando el nivel del agua. El vigía dejó este registro…' },
+  { t:'say', who:'Capitán del Puente', text:'¡Espléndido! Esa rata escapó con más pendiente que subida de cerro.\n\nMira el canal: la tinta está bajando el nivel del agua. El vigía dejó este registro…' },
   { t:'q', q:{ t:'mc', q:'El gráfico muestra el nivel del agua.\n\n¿Qué le ocurre al nivel con las horas?', svg:SVG_NIVEL, o:[
       'Decrece 2 palmos por hora','Crece 2 palmos por hora','Se mantiene constante','Decrece 8 palmos por hora'], a:0,
       fb:'La recta BAJA: de 8 a 0 en 4 horas → 2 palmos por hora. Pendiente m = −2.' } },
@@ -471,7 +473,7 @@ const ZONES = [
   { t:'say', who:N, text:'Los canales debían ser rectas perfectas. Ahora sus acueductos suben con inclinaciones absurdas y la tinta mancha las compuertas.\n\nEn una pared, escrito con tinta fresca: "LA PENDIENTE ES MÍA".' },
   { t:'q', q:{ t:'input', q:'El acueducto pasa por los puntos (0, 2) y (4, 10).\n\n¿Cuál es su pendiente m?', svg:SVG_ACUE, a:['2'], fb:'m = (10 − 2) ÷ (4 − 0) = 8/4 = 2: sube 2 metros por unidad.' } },
   { t:'show', foe:'anguila' },
-  { t:'say', who:'Anguila de la Pendiente', text:'Sssss… el Essscriba me dio essstos canales. Nadie que no domine la pendiente sssaldrá de aquí…' },
+  { t:'say', who:'Anguila de la Pendiente', text:'Sssss… el Essscriba me dio essstos canales. Mi cuerpo esss una curva… pero mi mordida esss PERFECTAMENTE lineal.\n\nNadie que no domine la pendiente sssaldrá de aquí…' },
   { t:'battle', foe:'anguila', name:'Anguila de la Pendiente', hp:4, qs:[
     { t:'input', q:'La anguila ondula por (1, 3) y (3, 9).\n\nSu pendiente m = ?', a:['3'], fb:'m = (9−3) ÷ (3−1) = 6/2 = 3.' },
     { t:'mc', q:'La corriente sigue f(x) = −2x + 8.\n\n¿Qué significa m = −2?', o:[
@@ -487,18 +489,18 @@ const ZONES = [
   { t:'q', q:{ t:'mc', q:'Pregunta de las compuertas 🚪:\n\nUn canal VERTICAL dibujado en el plano, ¿es la gráfica de una función?', o:[
       'No: una sola entrada tendría infinitas salidas','Sí: toda recta es función','Solo si pasa por el origen','Depende del valor de n'], a:0,
       fb:'¡Recuerda la Torre! La recta vertical rompe la unicidad. Toda recta NO vertical sí es función: f(x) = mx + n.' } },
-  { t:'item', pot:1, coin:4, xp:10, text:'La anguila se hunde derrotada. Ganas una POCIÓN 🧪 y 4 monedas 🪙 (+10 XP). En el agua flota un pergamino: la letra se parece a… no, imposible.' }
+  { t:'item', pot:1, coin:4, dag:1, xp:10, text:'La anguila se hunde derrotada. Ganas una POCIÓN 🧪, 4 monedas 🪙 y una DAGA DE GRAFITO 🗡: te permite eliminar 1 pregunta (+10 XP).\n\nEn el agua flota un pergamino: la letra se parece a… no, imposible.' }
 ]},
 // ---------- ZONA 3: BAZAR ----------
 { id:'bazar', name:'El Bazar Flotante', icon:'⛵', bg:'bazar', need:['canales'],
   steps:[
   { t:'say', who:N, text:'El mercado ahora flota: botes con toldos de colores amarrados entre sí. Y en el bote más grande, un rostro conocido…' },
   { t:'show', foe:'baldomero' },
-  { t:'say', who:'Mercader Baldomero', text:'¡Mi héroe favorito! Desde que me ayudaste en el Mercado de Piedra, los negocios prosperan… bueno, prosperaban, hasta esta tinta.\n\nMi tarifa sigue siendo honesta. ¡Está en este cartel!' },
+  { t:'say', who:'Mercader Baldomero', text:'¡Mi héroe favorito! Desde que me ayudaste en el Mercado de Piedra, los negocios prosperan… bueno, prosperaban, hasta esta tinta.\n\nMi tarifa sigue siendo honesta: crece LINEALMENTE. No como la de mi competencia, que crece exponencial… ¡un escándalo!\n\n¡Está en este cartel!' },
   { t:'q', q:{ t:'mc', q:'Según el gráfico del cartel, la tarifa de Baldomero es…', svg:SVG_TARIFA, o:[
       'C(x) = 2x + 4','C(x) = 4x + 2','C(x) = 2x − 4','C(x) = 6x'], a:0,
       fb:'Corta al eje Y en 4 (n = 4, atención fija) y sube 2 por manzana (m = 2).' } },
-  { t:'q', q:{ t:'input', q:'Baldomero sonríe: "¿Y cuánto me pagas por 6 manzanas?"\n\nC(6) = ?', a:['16'], fb:'C(6) = 2·6 + 4 = 16 monedas. ¡Cuentas claras!' } },
+  { t:'q', q:{ t:'input', q:'Baldomero sonríe: "Ya viste mi tarifa: C(x) = 2x + 4.\n\n¿Cuánto me pagas por 6 manzanas?"\n\nC(6) = ?', svg:SVG_TARIFA, a:['16'], fb:'C(6) = 2·6 + 4 = 16 monedas. En el gráfico: sobre x = 6 la recta seguiría hasta altura 16.' } },
   { t:'q', q:{ t:'mc', q:'En el cartel, el punto (3, 10) significa que…', svg:SVG_TARIFA, o:[
       '3 manzanas cuestan 10 monedas','10 manzanas cuestan 3 monedas','la pendiente es 10','el bazar abre a las 3'], a:0,
       fb:'Un punto (x, y) del gráfico es un caso real: entrada 3 manzanas → salida 10 monedas.' } },
@@ -508,7 +510,7 @@ const ZONES = [
     { txt:'Seguir hacia los canales altos →', jump:'z3_fin' }
   ]},
   { t:'label', id:'z3_oraculo' },
-  { t:'say', who:'Anciana del Caldero', text:'Aprendiz… te veo cargando un compás de plata. Escucha bien:\n\n"NINGÚN MAPA MUESTRA A SU PROPIO AUTOR. Y ninguna sombra camina sin su dueño."\n\nCuida de quien te dio ese compás… o cuídate DE él.' },
+  { t:'say', who:'Anciana del Caldero', text:'Aprendiz… mi edad es una función creciente y su valor no te lo diré. Pero te veo cargando un compás de plata. Escucha bien:\n\n"NINGÚN MAPA MUESTRA A SU PROPIO AUTOR. Y ninguna sombra camina sin su dueño."\n\nCuida de quien te dio ese compás… o cuídate DE él.' },
   { t:'item', coin:3, xp:5, text:'La anciana pone 3 monedas 🪙 en tu mano. "Para el viaje. Lo necesitarás cuando la tinta te muestre su rostro."' },
   { t:'label', id:'z3_fin' },
   { t:'escriba', q:{ t:'mc', q:'DESAFÍO DEL ESCRIBA 🖋 (difícil)\n\n¿Cuál es la recta que pasa por (1, 7) y (3, 13)?', o:[
@@ -540,7 +542,7 @@ const ZONES = [
   { t:'q', q:{ t:'mc', q:'Dos aspas siguen f(x) = 2x + 1 y g(x) = 2x − 3.\n\nEsas rectas son…', o:[
       'Paralelas: igual pendiente, nunca se cruzan','Se cruzan en x = 2','La misma recta','Perpendiculares'], a:0,
       fb:'Misma m = 2, distinto n → paralelas. Para cruzarse necesitan pendientes distintas.' } },
-  { t:'item', pot:1, coin:4, xp:10, text:'El Guardián vuelve a moler al ritmo correcto y te paga con una POCIÓN 🧪 y 4 monedas 🪙 (+10 XP).\n\n"EL ESCRIBA HUYÓ HACIA LA IMPRENTA. LLEVABA… UN COMPÁS DE PLATA."' }
+  { t:'item', pot:1, coin:4, xp:10, text:'El Guardián vuelve a moler al ritmo correcto y te paga con una POCIÓN 🧪 y 4 monedas 🪙 (+10 XP).\n\n"VUELVO A GIRAR 360 GRADOS. O SEA… QUEDO IGUAL QUE ANTES.\n\nEL ESCRIBA HUYÓ HACIA LA IMPRENTA. LLEVABA… UN COMPÁS DE PLATA."' }
 ]},
 // ---------- ZONA 4B: BIBLIOTECA ----------
 { id:'biblioteca', name:'La Biblioteca Hundida', icon:'📚', bg:'biblioteca', need:['bazar'], route:'A',
@@ -550,7 +552,7 @@ const ZONES = [
       'f(x) = 3x + 5','f(x) = 5x + 3','f(x) = 3x − 5','f(x) = 8x'], a:0,
       fb:'Sube 3 por paso (m = 3) y parte en 5 (n = 5). Verifica con toda la tabla.' } },
   { t:'show', foe:'pulpo' },
-  { t:'say', who:'Pulpo Bibliotecario', text:'Shhh… silencio en la biblioteca.\n\nOcho brazos, ocho libros, y TÚ vienes a desordenar. Reconstruye mis reglas o te quedarás archivado.' },
+  { t:'say', who:'Pulpo Bibliotecario', text:'Shhh… silencio en la biblioteca.\n\nOcho brazos: si cada uno carga 3 tomos, llevo L(b) = 3b = 24 libros. Lo mío SIEMPRE fue la proporcionalidad directa.\n\nReconstruye mis reglas o te quedarás archivado.' },
   { t:'battle', foe:'pulpo', name:'Pulpo Bibliotecario', hp:3, qs:[
     { t:'mc', q:'El pulpo lanza este gráfico:\n\n¿cuánto valen m y n?', svg:SVG_PAGS, o:[
       'm = 3 y n = 1','m = 1 y n = 3','m = 3 y n = 0','m = 2 y n = 1'], a:0,
@@ -624,7 +626,7 @@ const CLASES = {
   erudito:    { n:'📜 Erudito/a', d:'Zarpa con un escudo 🛡' }
 };
 
-let S = { name:'', clase:'explorador', skin:'azul', hp:5, maxhp:5, pot:1, coin:0, shield:0,
+let S = { name:'', clase:'explorador', skin:'azul', hp:5, maxhp:5, pot:1, coin:0, shield:0, dag:0,
           sellos:0, xp:0, correct:0, answered:0, done:{}, start:0, mins:0, vet:false };
 let R = { z:-1, si:0, awaitTap:false, typing:null, typeDone:null, fullText:'', inBattle:false,
           battle:null, foe:null, onTap:null, waitPot:false, cut:null, cutShot:0, cutStart:0, unlockMsg:false };
@@ -655,6 +657,8 @@ function updHud(){
   $('hud-sello').textContent = S.sellos;
   $('hud-xp').textContent = S.xp;
   $('hud-shield').classList.toggle('hidden', S.shield <= 0);
+  $('hud-dag').classList.toggle('hidden', !(S.dag > 0));
+  $('hud-dag-n').textContent = S.dag || 0;
 }
 
 // ---------- códigos ----------
@@ -815,20 +819,34 @@ function startCut(){
   show('scr-game');
   $('zone-tag').textContent = '🎬 Introducción';
   $('skip-hint').classList.remove('hidden');
+  cutUI();
+}
+function cutUI(){
   clearUI();
   $('dlg-who').textContent = '';
-  $('dlg-text').textContent = CUT[0].cap;
+  $('dlg-text').textContent = R.cut[R.cutShot].cap;
+  $('skip-hint').textContent = 'escena ' + (R.cutShot + 1) + ' de ' + R.cut.length;
+  const b = document.createElement('button');
+  b.className = 'opt';
+  b.textContent = R.cutShot < R.cut.length - 1 ? '▶ Continuar' : '⚔️ Comenzar la aventura';
+  b.onclick = e => { e.stopPropagation(); advanceCut(); };
+  const sk = document.createElement('button');
+  sk.className = 'linky'; sk.textContent = '⏭ Saltar introducción';
+  sk.onclick = e => { e.stopPropagation(); endCut(); };
+  $('dlg-opts').appendChild(b);
+  $('dlg-opts').appendChild(sk);
+}
+function advanceCut(){
+  if (!R.cut) return;
+  R.cutShot++;
+  if (R.cutShot >= R.cut.length) return endCut();
+  R.cutStart = performance.now();
+  cutUI();
 }
 function drawCut(ts){
   const shot = R.cut[R.cutShot];
   const t = Math.min(1, (ts - R.cutStart) / shot.dur);
   shot.draw(t, ts);
-  if (t >= 1){
-    R.cutShot++;
-    if (R.cutShot >= R.cut.length) return endCut();
-    R.cutStart = ts;
-    $('dlg-text').textContent = R.cut[R.cutShot].cap;
-  }
 }
 function endCut(){
   if (!R.cut) return;
@@ -836,7 +854,7 @@ function endCut(){
   $('skip-hint').classList.add('hidden');
   runZone(0);
 }
-$('stage-wrap').addEventListener('click', () => { if (R.cut) endCut(); });
+$('stage-wrap').addEventListener('click', () => { if (R.cut) advanceCut(); });
 
 // ---------- diálogo ----------
 function typeText(who, text, cb){
@@ -873,7 +891,7 @@ function clearUI(){
   $('dlg-tap').classList.add('hidden');
 }
 $('dlg').addEventListener('click', () => {
-  if (R.cut){ endCut(); return; }
+  if (R.cut) return;
   if (skipType()) return;
   if (R.waitPot) return;
   if (R.awaitTap && R.onTap){ R.awaitTap = false; const f = R.onTap; R.onTap = null; f(); }
@@ -923,7 +941,7 @@ function step(){
     case 'q':
       R.inBattle = false;
       askQ(st.q, ok => {
-        if (ok){ S.xp += 12; S.coin += 2; save(); updHud(); waitTap(() => { R.si++; step(); }); }
+        if (ok){ if (R.daggerUsed) R.daggerUsed = false; else { S.xp += 12; S.coin += 2; } save(); updHud(); waitTap(() => { R.si++; step(); }); }
         else if (S.hp <= 0) gameOver();
         else retryBtn(() => step());
       });
@@ -971,6 +989,7 @@ function step(){
     case 'item':
       if (st.pot) S.pot = Math.min(9, S.pot + st.pot);
       if (st.coin) S.coin += st.coin;
+      if (st.dag) S.dag = (S.dag || 0) + st.dag;
       if (st.xp) S.xp += st.xp;
       updHud(); save();
       typeText('✨', st.text, () => waitTap(() => { R.si++; step(); }));
@@ -980,7 +999,7 @@ function step(){
 }
 function renderShop(){
   clearUI();
-  typeText('Mercader Baldomero', 'Mi tienda flotante, a tu servicio. Tienes ' + S.coin + ' 🪙.\n\n🧪 Poción (recupera 2 ♥) — 6 🪙\n🛡 Escudo (absorbe 1 error) — 8 🪙', () => {
+  typeText('Mercader Baldomero', 'Mi tienda flotante, a tu servicio. Tienes ' + S.coin + ' 🪙.\n\n🧪 Poción (recupera 2 ♥) — 6 🪙\n🛡 Escudo (absorbe 1 error) — 8 🪙\n🗡 Daga de Grafito (elimina 1 pregunta) — 12 🪙', () => {
     const box = $('dlg-opts');
     const mk = (txt, en, fn) => {
       const b = document.createElement('button');
@@ -990,6 +1009,7 @@ function renderShop(){
     };
     mk('Comprar poción 🧪 — 6 🪙', S.coin >= 6 && S.pot < 9, () => { S.coin -= 6; S.pot++; save(); updHud(); renderShop(); });
     mk(S.shield > 0 ? 'Escudo 🛡 (ya tienes uno)' : 'Comprar escudo 🛡 — 8 🪙', S.coin >= 8 && S.shield === 0, () => { S.coin -= 8; S.shield = 1; save(); updHud(); renderShop(); });
+    mk('Comprar Daga de Grafito 🗡 — 12 🪙' + (S.dag >= 2 ? ' (máx. 2)' : ''), S.coin >= 12 && (S.dag || 0) < 2, () => { S.coin -= 12; S.dag = (S.dag || 0) + 1; save(); updHud(); renderShop(); });
     mk('Nada más, gracias (seguir viaje) →', true, () => { R.si++; step(); });
   });
 }
@@ -1005,7 +1025,9 @@ function battleTurn(){
   $('foe-bar').style.display = 'flex';
   askQ(q, ok => {
     if (ok){
-      S.xp += 15; S.coin += 2; save(); updHud();
+      if (R.daggerUsed) R.daggerUsed = false;
+      else { S.xp += 15; S.coin += 2; }
+      save(); updHud();
       FX.flash = 10;
       b.bhp--; foeBar();
       if (b.bhp <= 0){
@@ -1046,7 +1068,7 @@ function askQ(q, done, dmg){
       fb.innerHTML = '<b>⚔️ ¡Correcto! +' + (R.inBattle ? 15 : 12) + ' XP · +2 🪙</b><br>' + q.fb; }
     else if (S.shield > 0){
       S.shield--; fb.className = 'bad';
-      fb.innerHTML = '<b>🛡 ¡Tu escudo absorbió el golpe! (sin daño)</b><br>' + q.fb;
+      fb.innerHTML = '<b>🛡 ¡TU ESCUDO ABSORBIÓ EL GOLPE! No pierdes corazones, pero el escudo se rompió.</b><br>' + q.fb;
       ok = false;
     } else {
       S.hp = Math.max(0, S.hp - dmg); FX.shake = 12;
@@ -1083,6 +1105,25 @@ function askQ(q, done, dmg){
       };
       box.appendChild(b);
     });
+  }
+  if (S.dag > 0 && dmg === 1){
+    const d = document.createElement('button');
+    d.className = 'opt risky';
+    d.textContent = '🗡 Usar Daga de Grafito (tienes ' + S.dag + ') — eliminar esta pregunta';
+    d.onclick = e => {
+      e.stopPropagation();
+      S.dag--;
+      S.answered = Math.max(0, S.answered - 1);
+      R.daggerUsed = true;
+      $('dlg-inputwrap').classList.add('hidden');
+      document.querySelectorAll('#dlg-opts .opt').forEach(x => x.disabled = true);
+      const fb = $('fb');
+      fb.className = 'ok';
+      fb.innerHTML = '<b>🗡 La Daga de Grafito corta el pergamino: pregunta eliminada.</b> (sin XP ni monedas)';
+      updHud(); save();
+      done(true);
+    };
+    $('dlg-opts').appendChild(d);
   }
 }
 
@@ -1129,7 +1170,7 @@ function finishGame(){
 $('btn-start').onclick = () => {
   const n = $('in-name').value.trim();
   if (n.length < 3){ $('in-name').placeholder = '⚠️ Escribe tu nombre y apellido real'; $('in-name').focus(); return; }
-  S = { name:n, clase:pickClase, skin:pickSkin, hp:5, maxhp:5, pot:1, coin:0, shield:0,
+  S = { name:n, clase:pickClase, skin:pickSkin, hp:5, maxhp:5, pot:1, coin:0, shield:0, dag:0,
         sellos:0, xp:0, correct:0, answered:0, done:{}, start:Date.now(), mins:0, vet:vetOk };
   if (pickClase === 'explorador') S.pot += 2;
   if (pickClase === 'valiente'){ S.maxhp = 6; S.hp = 6; }
@@ -1202,7 +1243,7 @@ $('btn-decode').onclick = () => {
 (function init(){
   const prev = load();
   if (prev && prev.name){
-    S = prev; applySkin(); updHud();
+    S = prev; S.dag = S.dag || 0; applySkin(); updHud();
     if (S.done.imprenta) finishGame();
     else if (Object.keys(S.done).length > 0){ renderMap(); show('scr-map'); }
   }
