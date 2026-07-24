@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El Eclipse de Cartesia · Saga de Cartesia III</title>
+<style>
+  :root{
+    --bg:#140a1e; --panel:#241333; --panel2:#33204a; --border:#7c4a9c;
+    --gold:#ffce63; --ok:#5dffa0; --bad:#ff6b81; --hp:#ff4d6d; --ink:#7b6bd9;
+    --txt:#f6eeff; --mut:#b59cc9;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--txt);
+    font-family:"Courier New",ui-monospace,Menlo,Consolas,monospace; min-height:100%;}
+  body{background:radial-gradient(900px 500px at 20% -10%, #33204a 0%, var(--bg) 60%);}
+  #app{max-width:560px; margin:0 auto; padding:10px 10px 34px;}
+  .hidden{display:none !important;}
+  h1{font-size:1.4rem; letter-spacing:.04em; margin:.3em 0; text-transform:uppercase;}
+  h2{font-size:1.1rem; margin:.3em 0; text-transform:uppercase; letter-spacing:.05em;}
+  .mut{color:var(--mut); font-size:.9rem;}
+  .px-panel{background:var(--panel); border:3px solid var(--border); border-radius:4px;
+    box-shadow:0 3px 0 #0d0716, inset 0 0 0 2px #140a1e; padding:14px; margin:10px 0;}
+  button{font:inherit; cursor:pointer;}
+  .btn{display:block; width:100%; padding:13px 14px; margin:8px 0; font-size:1rem; font-weight:bold;
+    color:#241333; background:var(--gold); border:3px solid #b8902f; border-radius:4px;
+    box-shadow:0 3px 0 #7a5c15; text-transform:uppercase; letter-spacing:.03em;}
+  .btn:active{transform:translateY(2px); box-shadow:0 1px 0 #7a5c15;}
+  .btn.sec{background:var(--panel2); color:var(--txt); border-color:var(--border); box-shadow:0 3px 0 #0d0716;}
+  .btn:disabled{opacity:.5; cursor:default;}
+  input[type=text]{width:100%; padding:12px; font:inherit; font-size:1.05rem;
+    background:#0d0716; color:var(--txt); border:3px solid var(--border); border-radius:4px; outline:none;}
+  input[type=text]:focus{border-color:var(--gold);}
+  #hud{display:flex; align-items:center; gap:6px; padding:6px 2px; font-size:.95rem; flex-wrap:wrap;}
+  #hud .chip{background:var(--panel); border:2px solid var(--border); border-radius:4px; padding:4px 8px; white-space:nowrap;}
+  #hud-hearts{letter-spacing:2px; color:var(--hp);}
+  #btn-usepot.blink{animation:blinkpot .6s infinite; border-color:var(--ok);}
+  @keyframes blinkpot{0%,100%{background:var(--panel);}50%{background:#1e4d2e;}}
+  #stage-wrap{position:relative; border:3px solid var(--border); border-radius:4px;
+    box-shadow:0 3px 0 #0d0716; overflow:hidden; background:#000;}
+  #stage{display:block; width:100%; height:auto; image-rendering:pixelated; image-rendering:crisp-edges;}
+  #zone-tag{position:absolute; top:6px; left:8px; font-size:.72rem; color:#fff;
+    background:rgba(8,16,25,.78); border:1px solid var(--border); padding:2px 8px; border-radius:3px;
+    text-transform:uppercase; letter-spacing:.08em;}
+  #dlg{min-height:120px;}
+  #dlg-who{color:var(--gold); font-weight:bold; text-transform:uppercase; font-size:.85rem; letter-spacing:.06em; margin-bottom:6px;}
+  #dlg-text{font-size:1.02rem; line-height:1.5; white-space:pre-line; min-height:58px;}
+  #dlg-tap{color:var(--mut); font-size:.8rem; text-align:right; animation:blink 1.1s infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+  .svgbox{background:#0d0716; border:2px solid var(--border); border-radius:4px; padding:6px; margin:8px 0; text-align:center;}
+  .svgbox svg{max-width:100%; height:auto;}
+  .opt{display:block; width:100%; text-align:left; padding:11px 13px; margin:7px 0; font:inherit; font-size:.98rem;
+    background:var(--panel2); color:var(--txt); border:2px solid var(--border); border-radius:4px; white-space:pre-line;}
+  .opt:before{content:"▸ "; color:var(--gold);}
+  .opt.ok{border-color:var(--ok); background:#12301f;}
+  .opt.bad{border-color:var(--bad); background:#331520;}
+  .opt:disabled{cursor:default; opacity:.9;}
+  .opt.risky{border-color:var(--ink);}
+  #fb{border-radius:4px; padding:11px 13px; margin-top:10px; font-size:.95rem; line-height:1.45; display:none; border:2px solid;}
+  #fb.ok{display:block; background:#12301f; border-color:var(--ok);}
+  #fb.bad{display:block; background:#331520; border-color:var(--bad);}
+  #foe-bar{display:none; align-items:center; gap:8px; margin-top:8px; font-size:.85rem;}
+  #foe-hp{flex:1; height:12px; background:#0d0716; border:2px solid var(--border); border-radius:3px; overflow:hidden;}
+  #foe-hp>div{height:100%; background:linear-gradient(90deg,#ff4d6d,#ff8fa3); width:100%; transition:width .35s;}
+  .node{display:flex; align-items:center; gap:12px; width:100%; text-align:left; font:inherit;
+    background:var(--panel); border:3px solid var(--border); border-radius:4px; padding:12px 14px; margin:9px 0; color:var(--txt);}
+  .node .ico{font-size:1.5rem; width:40px; text-align:center; flex:none;}
+  .node .tt{font-weight:bold; text-transform:uppercase; font-size:.92rem; letter-spacing:.04em;}
+  .node .st{font-size:.8rem; color:var(--mut);}
+  .node.done{border-color:var(--ok);}
+  .node.locked{opacity:.45;}
+  .center{text-align:center;}
+  .big{font-size:1.9rem; font-weight:bold; color:var(--gold);}
+  .code-box{font-size:1rem; word-break:break-all; background:#0d0716;
+    border:2px dashed var(--gold); border-radius:4px; padding:12px; margin:10px 0;}
+  .linky{background:none; border:none; color:var(--mut); text-decoration:underline; font-size:.82rem; padding:8px;}
+  table.dec{width:100%; border-collapse:collapse; margin-top:10px;}
+  table.dec td{border-bottom:1px solid var(--border); padding:7px 5px; font-size:.92rem;}
+  table.dec td:first-child{color:var(--mut);}
+  .titlecard{font-size:2.4rem; line-height:1;}
+  .palrow{display:flex; gap:10px; justify-content:center; margin:8px 0;}
+  .swatch{width:44px; height:44px; border-radius:6px; border:3px solid var(--border); cursor:pointer;}
+  .swatch.sel{border-color:var(--gold); box-shadow:0 0 0 2px #7a5c15;}
+  .claserow{display:flex; gap:8px; margin:8px 0;}
+  .clasebtn{flex:1; padding:10px 6px; font:inherit; font-size:.8rem; background:var(--panel2);
+    color:var(--txt); border:2px solid var(--border); border-radius:4px; line-height:1.35;}
+  .clasebtn.sel{border-color:var(--gold); background:#2a3a1e;}
+  .helpcard{background:var(--panel2); border:2px solid var(--border); border-radius:4px; padding:11px 13px; margin:8px 0; font-size:.92rem; line-height:1.5;}
+  .lbl{font-size:.8rem; color:var(--mut); text-transform:uppercase; letter-spacing:.06em; margin:12px 0 4px; text-align:left;}
+  .shopitem{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .movebtns{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:8px 0;}
+  .mbtn{min-width:52px; height:46px; font:inherit; font-size:1.15rem; font-weight:bold;
+    background:var(--panel2); color:var(--txt); border:2px solid var(--border); border-radius:4px;}
+  .mbtn:active{transform:translateY(2px);}
+  .mbtn.on{border-color:var(--gold); background:#3a2a1e;}
+  #scr-splash{cursor:pointer;}
+  #cover-wrap{border:3px solid var(--border); border-radius:4px; overflow:hidden; box-shadow:0 3px 0 #0d0716; background:#000;}
+  #cover{display:block; width:100%; height:auto; image-rendering:pixelated; image-rendering:crisp-edges;}
+  .splash-title{font-size:1.6rem; letter-spacing:.1em; color:var(--gold); text-transform:uppercase;
+    text-shadow:2px 2px 0 #0d0716; margin:14px 0 2px; text-align:center; font-weight:bold;}
+  .splash-sub{text-align:center; color:var(--mut); font-size:.85rem; letter-spacing:.14em; text-transform:uppercase;}
+  .press{ text-align:center; margin-top:16px; font-size:1rem; color:#fff; letter-spacing:.08em;
+    animation:blink 1.1s infinite; text-transform:uppercase;}
+  #skip-hint{position:absolute; bottom:6px; right:8px; font-size:.7rem; color:#fff;
+    background:rgba(8,16,25,.7); border:1px solid var(--border); padding:2px 8px; border-radius:3px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="nojs" style="background:#5c1a26; border:3px solid #ff6b81; border-radius:4px; padding:14px; margin:10px 0; font-size:.95rem; line-height:1.5">
+    ⚠️ <b>El juego está bloqueado por el visor de vista previa.</b><br><br>
+    Para jugar: toca los <b>tres puntos ⋮</b> (o el botón ⬇) y elige <b>"Abrir en el navegador"</b> (Safari o Chrome).
+  </div>
+
+  <header id="hud" class="hidden">
+    <span class="chip" id="hud-hearts">♥♥♥♥♥</span>
+    <span class="chip">🧪 <b id="hud-pot">0</b></span>
+    <span class="chip">🪙 <b id="hud-coin">0</b></span>
+    <span class="chip">🌑 <b id="hud-sello">0</b>/3</span>
+    <span class="chip hidden" id="hud-shield">🛡</span>
+    <span class="chip hidden" id="hud-dag">🗡 <b id="hud-dag-n">0</b></span>
+    <span class="chip hidden" id="hud-astro">🔭</span>
+    <button class="chip" id="btn-fast" title="Velocidad del texto">⏩</button>
+    <span class="chip">✦ <b id="hud-xp">0</b></span>
+    <button class="chip" id="btn-usepot" style="color:var(--ok)">Beber poción</button>
+  </header>
+
+  <div id="stage-wrap" class="hidden">
+    <canvas id="stage" width="320" height="150"></canvas>
+    <span id="zone-tag"></span>
+    <span id="skip-hint" class="hidden">toca para saltar ▸</span>
+  </div>
+
+  <section id="scr-splash">
+    <div id="cover-wrap"><canvas id="cover" width="320" height="180"></canvas></div>
+    <div class="splash-title">El Eclipse de Cartesia</div>
+    <div class="splash-sub">Saga de Cartesia · Episodio III · El Gran Final</div>
+    <div class="press">▶ Toca cualquier parte para comenzar</div>
+  </section>
+
+  <section id="scr-title" class="hidden">
+    <div class="px-panel center">
+      <div class="titlecard">🌒</div>
+      <h1>El Eclipse de Cartesia</h1>
+      <p class="mut">Saga de Cartesia · Episodio III · lineal y cuadrática</p>
+      <p style="text-align:left; font-size:.95rem; line-height:1.5">El Cartógrafo-Sombra cubrió el sol desde el gran Observatorio. Solo el <b>Compás de Plata</b> conoce el camino entre lentes, péndulos y espejos. Es hora de terminar lo que empezó en la Torre… y de decidir el destino de tu antiguo maestro.</p>
+      <div class="lbl">Nombre de tu héroe (nombre y apellido real)</div>
+      <input type="text" id="in-name" maxlength="30" placeholder="Ej: Camila Rojas" autocomplete="off">
+      <div class="lbl">Color de armadura</div>
+      <div class="palrow" id="palrow"></div>
+      <div class="lbl">Elige tu clase (cada una con su ventaja)</div>
+      <div class="claserow" id="claserow"></div>
+      <button class="btn" id="btn-start">🌒 Entrar al Observatorio</button>
+      <button class="btn sec" id="btn-help">📜 Cómo jugar</button>
+      <button class="linky" id="btn-vet">¿Jugaste los episodios anteriores? Ingresa tu código (I o II)</button>
+      <div class="mut" id="vet-msg"></div>
+      <button class="linky" id="btn-teacher">Modo docente</button>
+    </div>
+  </section>
+
+  <section id="scr-help" class="hidden">
+    <div class="px-panel">
+      <h2>📜 Cómo jugar</h2>
+      <div class="helpcard">❤️ <b>Corazones</b>: tu vida. Cada error en un desafío te quita 1 corazón (2 si aceptaste un Desafío del Escriba). Si llegas a 0, caes… pero puedes levantarte perdiendo 20 XP.</div>
+      <div class="helpcard">🧪 <b>Pociones</b>: tocas <b>"Beber poción"</b> arriba y recuperas 2 corazones. Se ganan ayudando a personajes o comprándolas en el bazar.</div>
+      <div class="helpcard">🪙 <b>Monedas</b>: cada acierto paga monedas. Gástalas en la tienda de Baldomero: pociones, un escudo 🛡 que absorbe 1 error sin perder corazones, o la Daga de Grafito 🗡.</div>
+      <div class="helpcard">🗡 <b>Daga de Grafito</b>: arma de un solo uso que ELIMINA la pregunta en pantalla (cuenta como golpe, pero sin XP ni monedas). No sirve contra los Desafíos del Escriba. Se gana y se compra en el bazar.</div>
+      <div class="helpcard">🌑 <b>Desafíos del Eclipse</b>: retos opcionales MÁS difíciles. Si aciertas ganas un Fragmento de Corona; con los 3 desbloqueas la <b>Corona del Eclipse</b> 👑. Si fallas, pierdes 2 corazones. Tú decides.</div>
+      <div class="helpcard">🕹️ <b>Desafíos interactivos</b>: en algunos retos moverás un gráfico con botones ← → ↑ ↓ (o lo reflejarás en espejos) hasta calzarlo con el objetivo. ¡Confirma solo cuando estés seguro!</div>
+      <div class="helpcard">🔭 <b>Astrolabio</b>: si ingresas códigos de AMBOS episodios anteriores, recibes esta reliquia: tu escudo se recarga solo al entrar a cada zona.</div>
+      <div class="helpcard">⏩ Con el botón ⏩ del panel superior puedes acelerar la velocidad del texto de los diálogos.</div>
+      <div class="helpcard">✦ <b>XP y código final</b>: al terminar recibirás un código para pegar en Classroom. Incluye tu nombre cifrado: es personal e intransferible.</div>
+      <button class="btn" id="btn-helpback">Volver</button>
+    </div>
+  </section>
+
+  <section id="scr-game" class="hidden">
+    <div class="px-panel" id="dlg">
+      <div id="foe-bar"><span id="foe-name"></span><div id="foe-hp"><div></div></div></div>
+      <div id="dlg-who"></div>
+      <div id="dlg-text"></div>
+      <div class="svgbox hidden" id="dlg-svg"></div>
+      <div id="dlg-opts"></div>
+      <div id="dlg-inputwrap" class="hidden">
+        <input type="text" id="dlg-input" autocomplete="off" placeholder="Tu respuesta…">
+        <button class="btn" id="btn-check">⚡ Responder</button>
+      </div>
+      <div id="fb"></div>
+      <div id="dlg-tap" class="hidden">▼ toca para continuar</div>
+    </div>
+  </section>
+
+  <section id="scr-map" class="hidden">
+    <h2>🗺️ Mapa del Observatorio</h2>
+    <p class="mut" id="map-hi"></p>
+    <div id="map-list"></div>
+    <button class="linky" id="btn-reset">Reiniciar aventura desde cero</button>
+  </section>
+
+  <section id="scr-over" class="hidden">
+    <div class="px-panel center">
+      <div class="titlecard">💀</div>
+      <h2>Has caído…</h2>
+      <p class="mut">La oscuridad te envuelve… pero quien carga el Compás de Plata siempre encuentra el camino. Pierdes 20 XP y vuelves con el corazón lleno.</p>
+      <button class="btn" id="btn-retry">Levantarse y reintentar</button>
+    </div>
+  </section>
+
+  <section id="scr-end" class="hidden">
+    <div class="px-panel center">
+      <div class="titlecard">🌞</div>
+      <h2 id="end-title">SAGA COMPLETADA</h2>
+      <p class="mut" id="end-name"></p>
+      <div class="big" id="end-xp"></div>
+      <p id="end-detail" style="font-size:.92rem"></p>
+      <p id="end-rank" style="color:var(--gold); font-weight:bold"></p>
+      <p id="end-extra" class="mut" style="font-size:.85rem"></p>
+      <p style="text-align:left; font-size:.92rem"><b>Tu código de finalización</b> — pégalo como respuesta en la tarea de Classroom:</p>
+      <div class="code-box" id="end-code"></div>
+      <button class="btn" id="btn-copy">📋 Copiar código</button>
+      <p class="mut" style="font-size:.8rem">No cierres esta pantalla hasta entregar el código.</p>
+    </div>
+  </section>
+
+  <section id="scr-teacher" class="hidden">
+    <div class="px-panel">
+      <h2>🔑 Modo docente</h2>
+      <p class="mut">Pega el código de un/a estudiante (sirven códigos de los juegos I, II y III).</p>
+      <input type="text" id="t-code" placeholder="Código de finalización" autocomplete="off">
+      <button class="btn" id="btn-decode">Decodificar</button>
+      <div id="t-result"></div>
+      <button class="btn sec" id="btn-tback">Volver</button>
+    </div>
+  </section>
+
+</div>
+<script>
+
+"use strict";
+document.getElementById('nojs').style.display = 'none';
+window.onerror = function(msg, src, line){
+  var d = document.getElementById('nojs');
+  d.style.display = 'block';
+  d.innerHTML = '⚠️ <b>Error del juego</b> (muéstrale esto a tu profesor):<br><code style="font-size:.8rem">' +
+    String(msg).replace(/</g, '&lt;') + ' · línea ' + line + '</code>';
+};
+// ============ SPRITES ============
+const HERO_PX = [
+"....kkkk....","...kaaaak...","..kaaaaaak..","..kassssak..","..kaseseak..","..kassssak..",
+"...kssssk...","..kAAAAAAk..",".kcAAggAAck.",".kcAAggAAck.",".kcAAAAAAck.",".kcAAAAAAck.",
+"..kAAkkAAk..","..kAk..kAk..","..kk....kk..",".kkk....kkk."];
+const HERO_STAR_PX = [
+"....kkkk....","...kaaaak...","..kawaaaak..","..kassssak..","..kaseseak..","..kassssak..",
+"...kssssk...","..kAAwAAAk..",".kcAAggAAck.",".kcAAggAAck.",".kcAwAAAAck.",".kcAAAAwAck.",
+"..kAAkkAAk..","..kAk..kAk..","..kk....kk..",".kkk....kkk."];
+const NPC_PX = [
+"....hhhh....","...hhhhhh...","..hhhhhhhh..","..hssssssh..","..hseseshh..","..hssssshh..",
+"...ssssss...","..rrrrrrrr..",".rrrggrrrrr.".slice(0,12),".rrrggrrrr..",".rrrrrrrrr..",
+".rrrrrrrrr..","..rrrrrrr...","..rr...rr...","..rr...rr...",".rrr...rrr.."];
+const BOSS_PX = [
+".....dddd.....","....dddddd....","...dddddddd...","..dddddddddd..","..ddRddddRdd..",
+"..dddddddddd..","...dddddddd...","..dddddddddd..",".dddDDDDDDdd..".slice(0,14),
+".ddDDddddDDdd.",".ddDDddddDDdd.",".dddDDDDDDddd.","..dddddddddd..","..dddddddddd..",
+".dddd.dd.dddd.",".ddd..dd..ddd.","..d...dd...d..","......dd......"];
+const GOLEM_PX = [
+"..GGGGGGGG..",".GGGGGGGGGG.",".GGRGGGGRGG.",".GGGGGGGGGG.","..GGDDDDGG..","GGGGGGGGGGGG",
+"GDGGGGGGGGDG","GDGGDGGDGGDG","GGGGDGGDGGGG",".GGGDDDDGGG.","..GGG..GGG..","..GG....GG..",
+".DGG....GGD.",".DD......DD."];
+
+// Paletas de armadura elegibles
+const PALS = {
+  azul:      { k:'#1b1433', a:'#9db7d9', A:'#5d7fb0', s:'#f0c8a0', e:'#1b1433', c:'#b03a48', g:'#ffce63', w:'#ffffff' },
+  carmesi:   { k:'#1b1433', a:'#d99d9d', A:'#b05d5d', s:'#f0c8a0', e:'#1b1433', c:'#3a5db0', g:'#ffce63', w:'#ffffff' },
+  esmeralda: { k:'#1b1433', a:'#9dd9ae', A:'#5db07a', s:'#f0c8a0', e:'#1b1433', c:'#b03a8c', g:'#ffce63', w:'#ffffff' },
+  violeta:   { k:'#1b1433', a:'#c19dd9', A:'#8a5db0', s:'#f0c8a0', e:'#1b1433', c:'#b0813a', g:'#ffce63', w:'#ffffff' },
+  estelar:   { k:'#0d0a1a', a:'#2a3a6e', A:'#141c3a', s:'#f0c8a0', e:'#0d0a1a', c:'#3ddc97', g:'#ffe27a', w:'#ffffff' },
+  corona:    { k:'#140a1e', a:'#4a2a5e', A:'#2a163a', s:'#f0c8a0', e:'#140a1e', c:'#ff9d4a', g:'#ffe27a', w:'#ffd76a' }
+};
+const PALCOLORS = { azul:'#5d7fb0', carmesi:'#b05d5d', esmeralda:'#5db07a', violeta:'#8a5db0' };
+
+const SPR = {
+hero:   { px:HERO_PX, pal:PALS.azul },
+polilla: { px:[
+  "w....gg....w",
+  "ww..gggg..ww",
+  "wwwggkkggwww",
+  "wwwggggggwww",
+  ".wwggggggww.",
+  "..w.gggg.w..",
+  "....g..g...."],
+  pal:{ g:'#c9a2e0', k:'#140a1e', w:'#8a6aa8' } },
+vitral: { px:[
+  "...rrggbb...",
+  "..rrggbbyy..",
+  ".rrkgbbkyyr.",
+  ".grrggbbyyg.",
+  ".bgrrggbbyb.",
+  ".ybgrrggbby.",
+  "..ybgrrggb..",
+  "...y.bg.r..."],
+  pal:{ r:'#e06a7a', g:'#6ad08a', b:'#6a9ae0', y:'#e0c96a', k:'#140a1e' } },
+pendulo: { px:GOLEM_PX, pal:{ G:'#8a93b0', D:'#4a5068', R:'#ff9d4a' } },
+reflejo: { px:HERO_PX, pal:{ k:'#000000', a:'#2a1e3a', A:'#140a1e', s:'#3a2a4a', e:'#ff9d4a', c:'#241333', g:'#ff9d4a', w:'#ffffff' } },
+sombra:  { px:BOSS_PX, pal:{ d:'#120a1a', D:'#2a1633', R:'#ff9d4a' } },
+capitan:   { px:NPC_PX, pal:{ h:'#5d7fb0', s:'#f0c8a0', e:'#1b1433', r:'#3a5d8c', g:'#ffce63' } },
+baldomero: { px:NPC_PX, pal:{ h:'#8a5a2b', s:'#f0c8a0', e:'#1b1433', r:'#7b4fa0', g:'#ffce63' } },
+anciana:   { px:NPC_PX, pal:{ h:'#9a9ab0', s:'#e8c8a8', e:'#1b1433', r:'#5c5566', g:'#8fa8c7' } },
+cartografo:{ px:NPC_PX, pal:{ h:'#d8d8e8', s:'#e8c8a8', e:'#1b1433', r:'#2a4a63', g:'#ffce63' } }
+};
+
+const CV = document.getElementById('stage');
+const CX = CV.getContext('2d');
+
+function drawSprite(name, x, y, s, flip){
+  const sp = SPR[name]; if (!sp) return;
+  const rows = sp.px;
+  for (let j = 0; j < rows.length; j++){
+    const row = rows[j];
+    for (let i = 0; i < row.length; i++){
+      const c = sp.pal[row[i]];
+      if (!c) continue;
+      const ix = flip ? (row.length - 1 - i) : i;
+      CX.fillStyle = c;
+      CX.fillRect(x + ix * s, y + j * s, s, s);
+    }
+  }
+}
+
+// ============ FONDOS ============
+function bgSky(top, mid, ground, groundTop){
+  CX.fillStyle = top;    CX.fillRect(0, 0, 320, 60);
+  CX.fillStyle = mid;    CX.fillRect(0, 60, 320, 70);
+  CX.fillStyle = ground; CX.fillRect(0, 130, 320, 20);
+  CX.fillStyle = groundTop; CX.fillRect(0, 128, 320, 3);
+}
+function stars(n){
+  CX.fillStyle = '#e8f0ff';
+  for (let i = 0; i < n; i++) CX.fillRect((i * 53 + 17) % 320, (i * 31 + 9) % 55, 2, 2);
+}
+function tinta(spots){
+  CX.fillStyle = '#241b45';
+  spots.forEach(p => { CX.fillRect(p[0], p[1], p[2], 4); CX.fillRect(p[0] + 3, p[1] - 3, p[2] - 6, 3); });
+}
+let ECLIPSE = 0; // 0..1 avance del eclipse (lo fija el motor)
+function eclipseSun(){
+  CX.fillStyle = '#ffce63'; CX.beginPath(); CX.arc(272, 28, 15, 0, 7); CX.fill();
+  CX.fillStyle = '#ff9d4a'; CX.beginPath(); CX.arc(272, 28, 12, 0, 7); CX.fill();
+  CX.fillStyle = '#140a1e';
+  CX.beginPath(); CX.arc(272 - 26 + ECLIPSE * 26, 28, 13, 0, 7); CX.fill();
+  if (ECLIPSE >= 0.99){ CX.strokeStyle = '#ffe27a'; CX.lineWidth = 2;
+    CX.beginPath(); CX.arc(272, 28, 16, 0, 7); CX.stroke(); }
+}
+const BGS = {
+umbral(){ bgSky('#2a1633','#3a2245','#3a3040','#544a5c'); stars(7); eclipseSun();
+  CX.fillStyle = '#1e1230'; CX.fillRect(96, 34, 128, 96);
+  CX.fillStyle = '#2a1a40'; CX.beginPath(); CX.arc(160, 44, 62, 3.14, 0); CX.fill();
+  CX.fillStyle = '#ffce63'; CX.fillRect(150, 96, 20, 34);
+  CX.fillStyle = '#0d0716'; CX.fillRect(120, 20, 8, 26); CX.fillRect(196, 26, 6, 20);
+  CX.fillStyle = '#544a5c'; for (let i = 0; i < 7; i++) CX.fillRect(10 + i * 48, 124, 26, 4);
+},
+lentes(){ bgSky('#241333','#33204a','#2a2038','#4a3a5c'); stars(4); eclipseSun();
+  for (let i = 0; i < 4; i++){
+    const x = 30 + i * 78;
+    CX.strokeStyle = i % 2 ? '#8fd0ff' : '#c9a2e0'; CX.lineWidth = 4;
+    CX.beginPath(); CX.arc(x, 84, 22, 0, 7); CX.stroke();
+    CX.fillStyle = '#4a3a5c'; CX.fillRect(x - 2, 40, 4, 22);
+  }
+  CX.fillStyle = 'rgba(143,208,255,.15)'; CX.fillRect(60, 60, 200, 8);
+},
+pendulo(){ bgSky('#1e1226','#2a1a38','#241a2e','#3e3248'); eclipseSun();
+  CX.fillStyle = '#181022'; CX.fillRect(40, 10, 240, 120);
+  CX.strokeStyle = '#8a93b0'; CX.lineWidth = 3;
+  CX.beginPath(); CX.moveTo(160, 14); CX.lineTo(206, 96); CX.stroke();
+  CX.fillStyle = '#ff9d4a'; CX.beginPath(); CX.arc(208, 100, 10, 0, 7); CX.fill();
+  CX.fillStyle = '#3e3248'; for (let i = 0; i < 5; i++) CX.fillRect(52, 24 + i * 22, 18, 4);
+  CX.fillStyle = '#ffce63'; CX.fillRect(250, 30, 12, 14);
+},
+espejos(){ bgSky('#20142e','#2e1c40','#2a2038','#4a3a5c'); stars(3); eclipseSun();
+  for (let i = 0; i < 4; i++){
+    const x = 26 + i * 76;
+    CX.fillStyle = '#c9d6e8'; CX.fillRect(x, 46, 34, 74);
+    CX.fillStyle = '#8fa0b8'; CX.fillRect(x + 4, 52, 10, 62);
+    CX.fillStyle = '#7c4a9c'; CX.fillRect(x - 3, 42, 40, 5); CX.fillRect(x - 3, 120, 40, 5);
+  }
+},
+cupula(){ bgSky('#0d0716','#160d22','#1a1226','#2e2438'); stars(12); eclipseSun();
+  CX.fillStyle = '#120a1a'; CX.beginPath(); CX.arc(160, 150, 150, 3.14, 0); CX.fill();
+  CX.strokeStyle = '#2e2438'; CX.lineWidth = 3;
+  for (let i = 0; i < 5; i++){ CX.beginPath(); CX.moveTo(160, 150); CX.lineTo(30 + i * 65, 6); CX.stroke(); }
+  CX.fillStyle = '#ff9d4a'; CX.fillRect(64, 118, 6, 12); CX.fillRect(250, 118, 6, 12);
+}
+};
+
+// ============ GRÁFICOS SVG ============
+function plotSVG(cfg){
+  const W = 250, H = 205, mx = 34, my = 28, gw = 180, gh = 140;
+  const xm = cfg.xmax, ym = cfg.ymax;
+  const X = v => mx + v / xm * gw, Y = v => my + gh - v / ym * gh;
+  let g = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="300" xmlns="http://www.w3.org/2000/svg">';
+  const xs = cfg.xstep || 1, ys = cfg.ystep || 1;
+  for (let v = 0; v <= xm + 1e-9; v += xs){
+    g += '<line x1="' + X(v) + '" y1="' + my + '" x2="' + X(v) + '" y2="' + (my + gh) + '" stroke="#1a2c4d"/>';
+    g += '<text x="' + X(v) + '" y="' + (my + gh + 13) + '" fill="#8fa8c7" font-size="10" text-anchor="middle">' + (''+v).replace('.', ',') + '</text>';
+  }
+  for (let v = 0; v <= ym + 1e-9; v += ys){
+    g += '<line x1="' + mx + '" y1="' + Y(v) + '" x2="' + (mx + gw) + '" y2="' + Y(v) + '" stroke="#1a2c4d"/>';
+    if (v > 0) g += '<text x="' + (mx - 7) + '" y="' + (Y(v) + 3.5) + '" fill="#8fa8c7" font-size="10" text-anchor="end">' + (''+v).replace('.', ',') + '</text>';
+  }
+  g += '<line x1="' + mx + '" y1="' + (my + gh) + '" x2="' + (mx + gw + 5) + '" y2="' + (my + gh) + '" stroke="#3f6a9c" stroke-width="1.5"/>';
+  g += '<line x1="' + mx + '" y1="' + (my + gh) + '" x2="' + mx + '" y2="' + (my - 5) + '" stroke="#3f6a9c" stroke-width="1.5"/>';
+  g += '<text x="' + (mx + gw / 2) + '" y="' + (H - 1) + '" fill="#8fa8c7" font-size="10" text-anchor="middle">' + (cfg.xlab || 'x') + '</text>';
+  g += '<text x="10" y="' + (my - 10) + '" fill="#8fa8c7" font-size="10">' + (cfg.ylab || 'y') + '</text>';
+  const line = (pts, col) => '<polyline points="' + pts.map(p => X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1)).join(' ') + '" fill="none" stroke="' + col + '" stroke-width="3" stroke-linejoin="round"/>';
+  g += line(cfg.pts, '#7b6bd9');
+  if (cfg.pts2){
+    g += line(cfg.pts2, '#5dffa0');
+    g += '<rect x="' + (mx + 6) + '" y="' + (my - 22) + '" width="10" height="4" fill="#7b6bd9"/><text x="' + (mx + 20) + '" y="' + (my - 17) + '" fill="#8fa8c7" font-size="10">' + (cfg.lab1 || 'A') + '</text>';
+    g += '<rect x="' + (mx + 60) + '" y="' + (my - 22) + '" width="10" height="4" fill="#5dffa0"/><text x="' + (mx + 74) + '" y="' + (my - 17) + '" fill="#8fa8c7" font-size="10">' + (cfg.lab2 || 'B') + '</text>';
+  }
+  (cfg.dots || []).forEach(p => g += '<circle cx="' + X(p[0]) + '" cy="' + Y(p[1]) + '" r="4" fill="#ffce63"/>');
+  return g + '</svg>';
+}
+
+// ---------- gráfico interactivo (mover / reflejar) ----------
+function movePlot(st){
+  const W = 260, H = 240, cxp = 130, cyp = 120, u = 17;
+  const X = v => cxp + v * u, Y = v => cyp - v * u;
+  let g = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="300" xmlns="http://www.w3.org/2000/svg">';
+  for (let v = -6; v <= 6; v++){
+    g += '<line x1="' + X(v) + '" y1="' + Y(-6) + '" x2="' + X(v) + '" y2="' + Y(6) + '" stroke="#241333"/>';
+    g += '<line x1="' + X(-6) + '" y1="' + Y(v) + '" x2="' + X(6) + '" y2="' + Y(v) + '" stroke="#241333"/>';
+  }
+  g += '<line x1="' + X(-6) + '" y1="' + Y(0) + '" x2="' + X(6) + '" y2="' + Y(0) + '" stroke="#7c4a9c" stroke-width="1.5"/>';
+  g += '<line x1="' + X(0) + '" y1="' + Y(-6) + '" x2="' + X(0) + '" y2="' + Y(6) + '" stroke="#7c4a9c" stroke-width="1.5"/>';
+  [-4,-2,2,4].forEach(v => {
+    g += '<text x="' + X(v) + '" y="' + (Y(0) + 12) + '" fill="#b59cc9" font-size="9" text-anchor="middle">' + v + '</text>';
+    g += '<text x="' + (X(0) - 8) + '" y="' + (Y(v) + 3) + '" fill="#b59cc9" font-size="9" text-anchor="end">' + v + '</text>';
+  });
+  const base = st.fx === 'line' ? (x => x) : (x => x * x);
+  const curve = (h, k, sx, sy) => {
+    const pts = [];
+    for (let i = 0; i <= 96; i++){
+      const x = -6 + i * 0.125;
+      let y = sy * (base(sx * x - h) + k);
+      if (y < -6.6 || y > 6.6){ if (pts.length && pts[pts.length-1] !== '|') pts.push('|'); continue; }
+      pts.push(X(x).toFixed(1) + ',' + Y(y).toFixed(1));
+    }
+    return pts.join(' ').split(' | ').map(seg => '<polyline points="' + seg + '" fill="none" stroke-width="3" stroke-linejoin="round"');
+  };
+  curve(st.th, st.tk, st.tsx, st.tsy).forEach(p => g += p + ' stroke="#ffce63" stroke-dasharray="6 5" opacity=".9"/>');
+  curve(st.h, st.k, st.sx, st.sy).forEach(p => g += p + ' stroke="#c9a2e0"/>');
+  g += '<text x="8" y="14" fill="#ffce63" font-size="10">- - objetivo</text>';
+  g += '<text x="8" y="28" fill="#c9a2e0" font-size="10">— tu gráfico</text>';
+  return g + '</svg>';
+}
+
+// ============ GRÁFICOS DEL JUEGO ============
+function fnPts(f, x0, x1, n){
+  const pts = [];
+  for (let i = 0; i <= n; i++){ const x = x0 + (x1 - x0) * i / n; pts.push([x, f(x)]); }
+  return pts;
+}
+const SVG_SALTO = plotSVG({ xmax:4, ymax:4, xlab:'tiempo t (h)', ylab:'avance (grados)',
+  pts:fnPts(t => -t*t + 4*t, 0, 4, 32), dots:[[0,0],[2,4]] });
+
+const N = 'Narrador';
+const ZONES = [
+// ---------- ZONA 1: EL UMBRAL ----------
+{ id:'umbral', name:'El Umbral del Observatorio', icon:'🔭', bg:'umbral', need:[],
+  steps:[
+  { t:'say', who:N, text:'El Observatorio se alza contra un sol herido: el eclipse ya comenzó.\n\nEn tu mano, el Compás de Plata vibra… y por primera vez, HABLA.' },
+  { t:'say', who:'🧭 Compás de Plata', text:'Aprendiz. Fui forjado por el Cartógrafo cuando aún era solo luz.\n\nSé cómo detener el eclipse, pero el camino exige dominar el lenguaje completo: evaluar, desplazar, reflejar. Empecemos por lo que ya sabes.' },
+  { t:'q', q:{ t:'input', q:'La puerta del umbral pide un tributo:\n\nf(x) = 2x + 5.  Calcula f(4).', a:['13'], fb:'f(4) = 2·4 + 5 = 13. Evaluar: sustituir la entrada en la regla.' } },
+  { t:'q', q:{ t:'input', q:'El segundo cerrojo es un espejo curvo:\n\ng(x) = x².  Calcula g(6).', a:['36'], fb:'g(6) = 6² = 36. Bienvenido al mundo cuadrático: aquí las salidas crecen mucho más rápido.' } },
+  { t:'show', foe:'polilla' },
+  { t:'say', who:'Polilla del Crepúsculo', text:'Intrusssos… la penumbra es nuestra ahora.\n\nEl amo dice que ya no recuerdas evaluar. ¿Lo comprobamos?' },
+  { t:'battle', foe:'polilla', name:'Polilla del Crepúsculo', hp:3, qs:[
+    { t:'input', q:'La polilla embiste con p(x) = 3x − 4, con x = 5 aleteos.\n\n¡Evalúa p(5)!', a:['11'], fb:'p(5) = 15 − 4 = 11.' },
+    { t:'input', q:'Levanta un viento cuadrático q(x) = x² + 1, con x = −3.\n\nCalcula q(−3)… ¡cuida el signo!', a:['10'], fb:'(−3)² = 9, más 1 = 10. El cuadrado de un negativo es positivo.' },
+    { t:'mc', q:'Su polvo brillante sigue h(x) = 2x².\n\nh(3) = ?', o:['18','36','12','9'], a:0,
+      fb:'Primero el cuadrado (3² = 9), luego el doble: 18. En 2x² el 2 NO se eleva.' },
+    { t:'mc', q:'La polilla susurra: "f(2) = 7"…\n\n¿Qué significa eso?', o:[
+      'Que al ingresar 2, la función entrega 7','Que al ingresar 7, entrega 2','Que f vale 2·7 = 14','Que la función tiene pendiente 7'], a:0,
+      fb:'f(entrada) = salida. El punto (2, 7) pertenece al gráfico de f.' }
+  ]},
+  { t:'item', pot:1, coin:4, xp:10, text:'La polilla huye hacia la luz que queda. Ganas una POCIÓN 🧪 y 4 monedas 🪙 (+10 XP).\n\nCOMPÁS: "Bien. Ahora entremos: la Sala de las Lentes espera."' }
+]},
+// ---------- ZONA 2: LENTES ----------
+{ id:'lentes', name:'La Sala de las Lentes', icon:'🔍', bg:'lentes', need:['umbral'],
+  steps:[
+  { t:'say', who:'🧭 Compás de Plata', text:'Estas lentes enfocaban el cielo moviéndose con reglas precisas:\n\nSumar FUERA de la función — f(x) + k — la sube.\nRestar DENTRO — f(x − h) — la mueve a la DERECHA.\n\nSuena al revés, lo sé. Por eso vas a moverlas TÚ.' },
+  { t:'q', q:{ t:'move', mode:'shift', fx:'parab',
+      q:'🕹️ Mueve la lente (tu parábola) con los botones hasta calzarla con el haz de luz (objetivo).',
+      start:{h:0,k:0,sx:1,sy:1}, target:{h:3,k:2,sx:1,sy:1},
+      fb:'Llegaste a y = (x − 3)² + 2: tres a la DERECHA (x − 3) y dos ARRIBA (+2). Restar dentro mueve a la derecha.' } },
+  { t:'q', q:{ t:'mc', q:'PLACA DE BRONCE 🔍:\n\n¿Qué le hace f(x) + 3 al gráfico de f?', o:[
+      'Lo sube 3 unidades','Lo mueve 3 a la derecha','Lo baja 3 unidades','Lo mueve 3 a la izquierda'], a:0,
+      fb:'Sumar FUERA cambia la salida: todo el gráfico sube 3.' } },
+  { t:'show', foe:'vitral' },
+  { t:'say', who:'Vitral Animado', text:'Crrrick… soy los colores rotos del Observatorio.\n\nEl amo me desplazó tantas veces que olvidé mi lugar. Si sabes moverte… derrótame.' },
+  { t:'battle', foe:'vitral', name:'Vitral Animado', hp:3, qs:[
+    { t:'move', mode:'shift', fx:'parab',
+      q:'🕹️ ¡El vitral se esconde! Lleva tu parábola hasta su posición (objetivo).',
+      start:{h:0,k:0,sx:1,sy:1}, target:{h:-2,k:0,sx:1,sy:1},
+      fb:'Objetivo: y = (x + 2)². Para ir a la IZQUIERDA se SUMA dentro: x + 2 significa h = −2.' },
+    { t:'mc', q:'El vitral brilla con v(x) = (x − 1)² + 5.\n\n¿Cuál es su vértice?', o:[
+      '(1, 5)','(−1, 5)','(1, −5)','(5, 1)'], a:0,
+      fb:'En (x − h)² + k el vértice es (h, k) = (1, 5). El signo de h va "al revés" del que se ve.' },
+    { t:'mc', q:'¿Qué fórmula mueve y = x² DOS unidades a la IZQUIERDA?', o:[
+      'y = (x + 2)²','y = (x − 2)²','y = x² − 2','y = x² + 2'], a:0,
+      fb:'Izquierda ⟺ sumar dentro: (x + 2)². El error clásico es elegir (x − 2)².' }
+  ]},
+  { t:'escriba', q:{ t:'mc', q:'DESAFÍO DEL ECLIPSE 🌑 (difícil)\n\n¿Qué función tiene el gráfico de y = x² con vértice desplazado a (−2, −3)?', o:[
+      'y = (x + 2)² − 3','y = (x − 2)² − 3','y = (x + 2)² + 3','y = (x − 3)² − 2'], a:0,
+      fb:'Vértice (−2, −3): h = −2 → (x + 2)², y k = −3 → −3 fuera.' } },
+  { t:'item', pot:1, coin:4, xp:10, text:'El vitral se recompone y te deja pasar. Ganas una POCIÓN 🧪 y 4 monedas 🪙 (+10 XP).\n\n"Crrrick… el amo está arriba, donde el péndulo mide lo que queda de sol."' }
+]},
+// ---------- ZONA 3: PÉNDULO ----------
+{ id:'pendulo', name:'La Torre del Péndulo', icon:'🕰️', bg:'pendulo', need:['lentes'],
+  steps:[
+  { t:'say', who:'🧭 Compás de Plata', text:'Este péndulo mide el avance del eclipse. La pregunta clave no es cuánto avanzó… sino QUÉ TAN RÁPIDO EN PROMEDIO:\n\nrapidez de cambio promedio = (f(b) − f(a)) ÷ (b − a).\n\nEn una recta, ese valor es siempre la pendiente. En una curva… ya verás.' },
+  { t:'q', q:{ t:'input', q:'El registro del péndulo dice:\n\na las 2 h, la sombra cubría 10°.\nA las 6 h, cubría 30°.\n\n¿Rapidez de cambio promedio, en grados por hora?', a:['5'], fb:'(30 − 10) ÷ (6 − 2) = 20/4 = 5 grados por hora.' } },
+  { t:'q', q:{ t:'mc', q:'GRABADO EN LA PARED 🕰️:\n\nla rapidez de cambio promedio de f entre a y b es…', o:[
+      '( f(b) − f(a) ) ÷ ( b − a )','f(b) − f(a)','f(b) ÷ f(a)','( b − a ) ÷ ( f(b) − f(a) )'], a:0,
+      fb:'Cambio de la salida dividido por cambio de la entrada: cuánto cambia f por cada unidad de x.' } },
+  { t:'show', foe:'pendulo' },
+  { t:'say', who:'Péndulo de Hierro', text:'TIC. TOC. YO MIDO EL FIN DE CARTESIA.\n\nSI ENTIENDES MI RITMO… QUIZÁS LO RETRASES.' },
+  { t:'battle', foe:'pendulo', name:'Péndulo de Hierro', hp:4, qs:[
+    { t:'input', q:'Mi filo sigue f(x) = x².\n\n¿Rapidez de cambio promedio entre x = 1 y x = 3?', a:['4'], fb:'(9 − 1) ÷ (3 − 1) = 8/2 = 4.' },
+    { t:'input', q:'Mi cadena sigue la recta f(x) = 3x + 1.\n\n¿Rapidez promedio entre x = 2 y x = 6?', a:['3'], fb:'(19 − 7) ÷ 4 = 3. En una RECTA siempre da la pendiente, elijas el intervalo que elijas.' },
+    { t:'mc', q:'TIC… TOC…\n\n¿En cuál función la rapidez de cambio promedio DEPENDE del intervalo elegido?', o:[
+      'En la parábola f(x) = x²','En la recta f(x) = 3x + 1','En ambas por igual','En ninguna'], a:0,
+      fb:'La recta cambia siempre al mismo ritmo (su pendiente). La parábola no: por eso su rapidez promedio depende del intervalo. Esa es LA diferencia entre lo lineal y lo cuadrático.' },
+    { t:'mc', q:'El eclipse avanzó según el gráfico.\n\n¿Rapidez promedio entre t = 0 y t = 2?', svg:SVG_SALTO, o:[
+      '2 grados/h','4 grados/h','0 grados/h','−2 grados/h'], a:0,
+      fb:'f(2) = 4 y f(0) = 0: (4 − 0)/2 = 2. Es la pendiente de la recta que une esos dos puntos.' }
+  ]},
+  { t:'show', foe:'baldomero' },
+  { t:'say', who:'Mercader Baldomero', text:'¡¿Héroe?! ¡Hasta aquí me trajo el negocio!\n\nCon este eclipse mis ventas CAEN con pendiente negativa… así que todo a PRECIO DE LIQUIDACIÓN. Bueno, el precio de siempre. ¡Pero suena mejor!' },
+  { t:'shop' },
+  { t:'hide' },
+  { t:'escriba', q:{ t:'input', q:'DESAFÍO DEL ECLIPSE 🌑 (difícil)\n\nf(x) = x² − 2x.\n\n¿Rapidez de cambio promedio entre x = 2 y x = 5?', a:['5'], fb:'f(5) = 25 − 10 = 15; f(2) = 4 − 4 = 0. (15 − 0)/(5 − 2) = 5.' } },
+  { t:'item', pot:1, coin:4, dag:1, xp:10, text:'El péndulo se detiene… un instante. Ganas una POCIÓN 🧪, 4 monedas 🪙 y una DAGA DE GRAFITO 🗡 (+10 XP).\n\n"TIC. LA GALERÍA DE LOS ESPEJOS. TOC. AHÍ TE ESPERA… TÚ MISMO."' }
+]},
+// ---------- ZONA 4: ESPEJOS ----------
+{ id:'espejos', name:'La Galería de los Espejos', icon:'🪞', bg:'espejos', need:['pendulo'],
+  steps:[
+  { t:'say', who:'🧭 Compás de Plata', text:'Los espejos del Observatorio reflejan funciones:\n\n−f(x) refleja respecto al eje X (la salida cambia de signo).\nf(−x) refleja respecto al eje Y (la entrada cambia de signo).\n\nPruébalo con tus propias manos.' },
+  { t:'q', q:{ t:'move', mode:'mirror', fx:'parab',
+      q:'🕹️ La función f(x) = (x − 2)² + 1 está frente al espejo.\n\nUsa los espejos hasta obtener −f(x) (el objetivo punteado).',
+      start:{h:2,k:1,sx:1,sy:1}, target:{h:2,k:1,sx:1,sy:-1},
+      fb:'−f(x) = −(x − 2)² − 1: TODA la salida cambió de signo y el gráfico se dio vuelta bajo el eje X.' } },
+  { t:'q', q:{ t:'mc', q:'MARCO DEL PRIMER ESPEJO 🪞:\n\n−f(x) refleja el gráfico respecto a…', o:[
+      'el eje X','el eje Y','el origen','la recta y = x'], a:0,
+      fb:'Cambia el signo de la SALIDA: lo de arriba pasa abajo → espejo en el eje X.' } },
+  { t:'q', q:{ t:'mc', q:'MARCO DEL SEGUNDO ESPEJO 🪞:\n\n¿y f(−x) qué hace?', o:[
+      'Refleja respecto al eje Y','Refleja respecto al eje X','Cambia el signo de la salida','Desplaza a la izquierda'], a:0,
+      fb:'Cambia el signo de la ENTRADA: lo de la derecha pasa a la izquierda → espejo en el eje Y.' } },
+  { t:'show', foe:'reflejo' },
+  { t:'say', who:'Tu Reflejo de Tinta', text:'…hola.\n\nSoy lo que la Sombra vio en ti: tu reflejo con la entrada cambiada de signo. Solo uno de los dos saldrá de esta galería.' },
+  { t:'battle', foe:'reflejo', name:'Tu Reflejo de Tinta', hp:3, qs:[
+    { t:'mc', q:'Tu reflejo ataca con f(x) = 2x + 3… pero INVERTIDO.\n\n¿Cuál es f(−x)?', o:[
+      'f(−x) = −2x + 3','f(−x) = 2x − 3','f(−x) = −2x − 3','f(−x) = 3x + 2'], a:0,
+      fb:'Sustituye x por −x: 2(−x) + 3 = −2x + 3. Solo la entrada cambia de signo.' },
+    { t:'mc', q:'Contraataca con g(x) = x² − 4 reflejada en el eje X.\n\n¿Cuál es −g(x)?', o:[
+      '−g(x) = −x² + 4','−g(x) = x² + 4','−g(x) = −x² − 4','−g(x) = (−x)² − 4'], a:0,
+      fb:'−(x² − 4) = −x² + 4: TODO el resultado cambia de signo, término a término.' },
+    { t:'mc', q:'Tu reflejo duda: "¿por qué x² se ve IGUAL en el espejo del eje Y?"', o:[
+      'Porque f(−x) = f(x): (−x)² = x²','Porque su pendiente es cero','Porque pasa por el origen','Porque es positiva'], a:0,
+      fb:'(−x)² = x²: entrada y su opuesta dan la misma salida. Por eso la parábola es SIMÉTRICA respecto al eje Y.' }
+  ]},
+  { t:'escriba', q:{ t:'mc', q:'DESAFÍO DEL ECLIPSE 🌑 (el último y más difícil)\n\nRefleja f(x) = (x − 1)² respecto al eje Y.\n\n¿Qué función obtienes?', o:[
+      'f(−x) = (x + 1)²','f(−x) = −(x − 1)²','f(−x) = (x − 1)² + 1','f(−x) = −(x + 1)²'], a:0,
+      fb:'f(−x) = (−x − 1)² = (x + 1)², porque (−x−1)² = (−(x+1))² = (x+1)². El vértice pasó de (1,0) a (−1,0).' } },
+  { t:'item', pot:1, coin:4, xp:10, text:'Tu reflejo sonríe por primera vez… y se disuelve en tinta limpia. Ganas una POCIÓN 🧪 y 4 monedas 🪙 (+10 XP).\n\nCOMPÁS: "Arriba está la Cúpula. Él te espera. Y esta vez… no habrá capucha."' }
+]},
+// ---------- ZONA 5: LA CÚPULA ----------
+{ id:'cupula', name:'La Cúpula del Eclipse', icon:'🌑', bg:'cupula', need:['espejos'],
+  steps:[
+  { t:'say', who:N, text:'La Cúpula del Eclipse. A través del gran telescopio, el sol es apenas un anillo de fuego.\n\nAntes de la puerta final, tres ecos de tu viaje te cierran el paso: la saga entera quiere saber si la recuerdas.' },
+  { t:'q', q:{ t:'mc', q:'ECO DE LA TORRE (Episodio I) 🗼:\n\n"Una función asigna a cada entrada…"', o:[
+      'exactamente una salida','una o más salidas','al menos dos salidas','una salida solo si es positiva'], a:0,
+      fb:'Unicidad: el corazón del concepto desde el primer día.' } },
+  { t:'q', q:{ t:'input', q:'ECO DE LOS RÍOS (Episodio II) 🌊:\n\n¿Pendiente de la recta que pasa por (1, 2) y (4, 11)?', a:['3'], fb:'m = (11 − 2)/(4 − 1) = 9/3 = 3.' } },
+  { t:'q', q:{ t:'mc', q:'ECO DE LA IMPRENTA (Episodio II) 🖨️:\n\n¿cuál recta pasa por (0, 4) y DECRECE?', o:[
+      'f(x) = −2x + 4','f(x) = 2x + 4','f(x) = −2x − 4','f(x) = 4x'], a:0,
+      fb:'n = 4 y pendiente negativa: f(x) = −2x + 4.' } },
+  { t:'show', foe:'sombra' },
+  { t:'say', who:'El Cartógrafo-Sombra', text:'Aprendiz. Sin máscaras esta vez.\n\nYo escribí las reglas de este reino y ellas me escribieron a mí. Cuando el eclipse sea total, todo quedará en blanco… y podré escribirlo de nuevo, sin errores. Sin sombras. Sin TI.' },
+  { t:'choice', who:'El Cartógrafo-Sombra', text:'"¿Últimas palabras, portador de mi compás?"', opts:[
+    { txt:'Las reglas no se imponen: se descubren. ¡Y yo las descubrí TODAS!', jump:'c_fight' },
+    { txt:'Tu compás me enseñó más que tú. (Atacar)', jump:'c_fight' }
+  ]},
+  { t:'label', id:'c_fight' },
+  { t:'battle', foe:'sombra', name:'El Cartógrafo-Sombra', hp:5, qs:[
+    { t:'mc', q:'FASE 1 🌘 "Me oculto en el vértice de S(x) = (x − 2)² + 1… y me desplazo con S(x − 3) + 2."\n\n¿Dónde está ahora su vértice?', o:[
+      '(5, 3)','(−1, 3)','(5, −1)','(2, 1)'], a:0,
+      fb:'Vértice original (2, 1); tres a la derecha y dos arriba: (5, 3).' },
+    { t:'input', q:'FASE 2 🌗 "Mi golpe cae con D(x) = −x² + 6x."\n\nLo lanza con x = 3: ¡evalúa D(3) para esquivar!', a:['9'], fb:'D(3) = −9 + 18 = 9. Justo el máximo de la parábola.' },
+    { t:'mc', q:'FASE 3 🌖 "¡Me reflejo!" Su parábola tenía vértice (5, 3)…\n\ntras aplicar −S(x), ¿dónde queda el vértice?', o:[
+      '(5, −3)','(−5, 3)','(−5, −3)','(3, 5)'], a:0,
+      fb:'Espejo en el eje X: la x no cambia, la salida cambia de signo: (5, −3).' },
+    { t:'input', q:'FASE 4 🌒 "El eclipse crece como E(t) = t²."\n\n¿Con qué rapidez promedio avanzó entre t = 2 y t = 4?', a:['6'], fb:'(16 − 4)/(4 − 2) = 12/2 = 6. Cada vez más rápido: eso es lo cuadrático.' },
+    { t:'move', mode:'shift', fx:'parab',
+      q:'🕹️ GOLPE FINAL 💥 ¡Atrápalo con la Red de Luz!\n\nLleva tu parábola exactamente hasta su escondite (objetivo punteado).',
+      start:{h:0,k:0,sx:1,sy:1}, target:{h:4,k:1,sx:1,sy:1},
+      fb:'y = (x − 4)² + 1: la red cayó sobre el vértice (4, 1). ¡La Sombra está atrapada!' }
+  ]},
+  { t:'say', who:N, text:'La Sombra cae de rodillas, atrapada en la Red de Luz. Bajo la tinta, por un instante… ves al anciano que te enseñó a leer mapas.\n\nEl Compás vibra: puede SEPARAR al Cartógrafo de su sombra… o SELLARLOS juntos para siempre.' },
+  { t:'choice', who:'🧭 Compás de Plata', text:'"La decisión es tuya, Aprendiz. Solo tuya."', opts:[
+    { txt:'✨ REDIMIR: separar al maestro de su sombra', jump:'fin_red' },
+    { txt:'🔒 SELLAR: encerrar a ambos bajo el Observatorio', jump:'fin_sello' }
+  ]},
+  { t:'label', id:'fin_red' },
+  { t:'flag', final:'redencion' },
+  { t:'say', who:N, text:'El Compás brilla como un segundo sol. La tinta se desprende del anciano como una piel vieja y se disuelve en la luz.\n\nEl eclipse retrocede. El Cartógrafo — el de verdad — llora frente al sol que vuelve.' },
+  { t:'show', foe:'cartografo' },
+  { t:'say', who:'El Gran Cartógrafo', text:'Toda regla proyecta una sombra… pero tú aprendiste a mirarlas de frente: a moverlas, a reflejarlas, a medirlas.\n\nYo ya no soy digno de estos mapas. Cartesia necesita un nuevo Cartógrafo… y está frente a mí.' },
+  { t:'item', xp:30, text:'🏅 FINAL VERDADERO: LA REDENCIÓN.\n\nRecibes el título de Cartógrafo/a de Cartesia (+30 XP). El reino vuelve a tener sol… y reglas.' },
+  { t:'goto_end' },
+  { t:'label', id:'fin_sello' },
+  { t:'flag', final:'sello' },
+  { t:'say', who:N, text:'El Compás traza un círculo de luz. El Cartógrafo y su sombra caen juntos, sellados bajo el Observatorio, abrazados a sus mapas.\n\nEl eclipse retrocede. El sol vuelve… pero nadie queda para custodiar las reglas del reino. Nadie… excepto tú.' },
+  { t:'item', xp:25, text:'🏅 FINAL DEL SELLO.\n\nCartesia está a salvo y su cielo despejado. Tomas los mapas del Observatorio: alguien debe ser el nuevo Cartógrafo/a (+25 XP).\n\n(Dicen que existe otro final… más luminoso.)' },
+  { t:'goto_end' }
+]}
+];
+
+// ============ MOTOR ============
+const $ = id => document.getElementById(id);
+const KEY1 = 'TORRE-CARTOGRAFO-2026';
+const KEY2 = 'RIOS-DE-TINTA-2026';
+const KEY3 = 'ECLIPSE-CARTESIA-2026';
+const PIN = '2026';
+const STORE = 'eclipse_cartesia_v1';
+const CLASES = {
+  explorador: { n:'🧭 Explorador/a', d:'+2 pociones al zarpar' },
+  valiente:   { n:'❤️ Valiente', d:'+1 corazón máximo' },
+  erudito:    { n:'📜 Erudito/a', d:'Zarpa con un escudo 🛡' }
+};
+
+let S = { name:'', clase:'explorador', skin:'azul', hp:5, maxhp:5, pot:1, coin:0, shield:0, dag:0, astro:0,
+          sellos:0, deaths:0, xp:0, correct:0, answered:0, done:{}, start:0, mins:0, final:'' };
+let R = { z:-1, si:0, awaitTap:false, typing:null, typeDone:null, fullText:'', inBattle:false,
+          battle:null, foe:null, onTap:null, waitPot:false, cut:null, cutShot:0, cutStart:0, unlockMsg:false };
+const FX = { shake:0, flash:0 };
+let pickSkin = 'azul', pickClase = 'explorador', vet1Ok = false, vet2Ok = false;
+
+// ---------- utilidades ----------
+function show(id){
+  ['scr-splash','scr-title','scr-help','scr-game','scr-map','scr-over','scr-end','scr-teacher'].forEach(s => $(s).classList.add('hidden'));
+  $(id).classList.remove('hidden');
+  const inGame = id === 'scr-game';
+  $('hud').classList.toggle('hidden', !inGame);
+  $('stage-wrap').classList.toggle('hidden', !inGame);
+  window.scrollTo(0, 0);
+}
+function shuffle(a){ a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function save(){ try { localStorage.setItem(STORE, JSON.stringify(S)); } catch(e){} }
+function load(){ try { return JSON.parse(localStorage.getItem(STORE) || 'null'); } catch(e){ return null; } }
+function norm(s){ return String(s).trim().toLowerCase().replace(/\s+/g,'').replace(/,/g,'.').replace(/−/g,'-'); }
+function applySkin(){
+  SPR.hero.pal = PALS[S.skin] || PALS.azul;
+  SPR.hero.px = (S.skin === 'estelar' || S.skin === 'corona') ? HERO_STAR_PX : HERO_PX;
+}
+function updHud(){
+  $('hud-hearts').textContent = '♥'.repeat(S.hp) + '♡'.repeat(S.maxhp - S.hp);
+  $('hud-pot').textContent = S.pot;
+  $('hud-coin').textContent = S.coin;
+  $('hud-sello').textContent = S.sellos;
+  $('hud-xp').textContent = S.xp;
+  $('hud-shield').classList.toggle('hidden', S.shield <= 0);
+  $('hud-dag').classList.toggle('hidden', !(S.dag > 0));
+  $('hud-dag-n').textContent = S.dag || 0;
+  $('hud-astro').classList.toggle('hidden', !S.astro);
+}
+
+// ---------- códigos ----------
+function toBytes(str){ return Array.from(new TextEncoder().encode(str)); }
+function fromBytes(b){ return new TextDecoder().decode(new Uint8Array(b)); }
+function encCode(payload, key){
+  const kb = toBytes(key), pb = toBytes(payload);
+  const x = pb.map((b, i) => b ^ kb[i % kb.length]);
+  let hex = x.map(b => b.toString(16).padStart(2, '0')).join('');
+  const cs = (x.reduce((s, b) => s + b, 0) % 97).toString(16).padStart(2, '0');
+  return (hex + cs).toUpperCase().match(/.{1,5}/g).join('-');
+}
+function decCode(code, key, nparts){
+  const hex = String(code).replace(/[-\s]/g, '').toLowerCase();
+  if (hex.length < 6 || hex.length % 2 || /[^0-9a-f]/.test(hex)) return null;
+  const body = hex.slice(0, -2), cs = parseInt(hex.slice(-2), 16);
+  const x = body.match(/.{2}/g).map(h => parseInt(h, 16));
+  if (x.reduce((s, b) => s + b, 0) % 97 !== cs) return null;
+  const kb = toBytes(key);
+  try {
+    const p = fromBytes(x.map((b, i) => b ^ kb[i % kb.length])).split('|');
+    return p.length === nparts ? p : null;
+  } catch(e){ return null; }
+}
+
+// ---------- carátula ----------
+(function drawCover(){
+  const c = document.getElementById('cover').getContext('2d');
+  c.fillStyle = '#0a1220'; c.fillRect(0, 0, 320, 180);
+  c.fillStyle = '#16283f'; c.fillRect(0, 60, 320, 60);
+  c.fillStyle = '#e8f0ff';
+  for (let i = 0; i < 16; i++) c.fillRect((i * 47 + 11) % 320, (i * 29 + 7) % 58, 2, 2);
+  c.fillStyle = '#f5f0dc'; c.beginPath(); c.arc(268, 30, 16, 0, 7); c.fill();
+  c.fillStyle = '#0a1220'; c.beginPath(); c.arc(260, 24, 13, 0, 7); c.fill();
+  c.fillStyle = '#0e1a2e'; c.fillRect(30, 24, 22, 60);               // torre lejana
+  c.fillStyle = '#16283f'; c.beginPath(); c.moveTo(24,26); c.lineTo(41,8); c.lineTo(58,26); c.fill();
+  c.fillStyle = '#ffce63'; c.fillRect(37, 38, 6, 7);
+  c.fillStyle = '#12304a'; c.fillRect(0, 120, 320, 60);              // agua
+  c.fillStyle = '#5dd0ff';
+  for (let i = 0; i < 10; i++) c.fillRect(8 + i * 33, 128 + (i % 3) * 12, 14, 2);
+  c.fillStyle = '#241b45';                                            // tinta en el agua
+  c.fillRect(150, 132, 90, 8); c.fillRect(165, 126, 60, 6); c.fillRect(180, 142, 70, 6);
+  c.fillStyle = '#6a5a3c'; c.fillRect(0, 112, 150, 8);               // muelle
+  c.fillRect(20, 120, 6, 30); c.fillRect(110, 120, 6, 30);
+  // héroe grande en el muelle
+  const px = HERO_PX, pal = PALS.azul, s = 4, ox = 52, oy = 48;
+  for (let j = 0; j < px.length; j++)
+    for (let i = 0; i < px[j].length; i++){
+      const col = pal[px[j][i]]; if (!col) continue;
+      c.fillStyle = col; c.fillRect(ox + i * s, oy + j * s, s, s);
+    }
+  // silueta del Escriba reflejada en la tinta
+  const bp = BOSS_PX, s2 = 2, bx = 236, by = 78;
+  for (let j = 0; j < bp.length; j++)
+    for (let i = 0; i < bp[j].length; i++){
+      if (bp[j][i] === '.') continue;
+      c.fillStyle = bp[j][i] === 'R' ? '#c9f06c' : '#141c2e';
+      c.fillRect(bx + i * s2, by + j * s2, s2, s2);
+    }
+})();
+function leaveSplash(){
+  if ($('scr-splash').classList.contains('hidden')) return;
+  show('scr-title');
+}
+document.addEventListener('click', leaveSplash);
+document.addEventListener('keydown', leaveSplash);
+
+// ---------- personalización ----------
+(function buildPickers(){
+  const pr = $('palrow');
+  Object.keys(PALCOLORS).forEach(k => {
+    const d = document.createElement('button');
+    d.className = 'swatch' + (k === pickSkin ? ' sel' : '');
+    d.style.background = PALCOLORS[k];
+    d.title = k;
+    d.onclick = () => { pickSkin = k;
+      document.querySelectorAll('.swatch').forEach(x => x.classList.remove('sel'));
+      d.classList.add('sel'); };
+    pr.appendChild(d);
+  });
+  const cr = $('claserow');
+  Object.keys(CLASES).forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'clasebtn' + (k === pickClase ? ' sel' : '');
+    b.innerHTML = '<b>' + CLASES[k].n + '</b><br>' + CLASES[k].d;
+    b.onclick = () => { pickClase = k;
+      document.querySelectorAll('.clasebtn').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); };
+    cr.appendChild(b);
+  });
+})();
+$('btn-help').onclick = () => show('scr-help');
+$('btn-helpback').onclick = () => show('scr-title');
+$('btn-vet').onclick = () => {
+  const c = prompt('Pega un código de LA TORRE DEL CARTÓGRAFO o LOS RÍOS DE TINTA (puedes ingresar ambos, uno a la vez):');
+  if (c === null) return;
+  const p2 = decCode(c, KEY2, 7), p1 = p2 ? null : decCode(c, KEY1, 5);
+  if (p2) vet2Ok = true;
+  else if (p1) vet1Ok = true;
+  if (p1 || p2){
+    let m = '🏅 Verificado: ' + (p2 ? 'Episodio II (' + p2[0] + ')' : 'Episodio I (' + p1[0] + ')') + '. +1 poción.';
+    if (vet1Ok && vet2Ok) m += ' 🔭 ¡AMBOS episodios! Recibirás el ASTROLABIO: tu escudo se recarga en cada zona.';
+    else m += ' Puedes ingresar también el código del otro episodio.';
+    $('vet-msg').textContent = m;
+  } else $('vet-msg').textContent = '✘ Código inválido. Puedes jugar igual, sin bono.';
+};
+
+// ---------- render ----------
+function draw(ts){
+  CX.save();
+  if (FX.shake > 0){ CX.translate((Math.random() - .5) * 6, (Math.random() - .5) * 6); FX.shake--; }
+  CX.fillStyle = '#000'; CX.fillRect(-10, -10, 340, 170);
+  if (R.cut){ drawCut(ts); CX.restore(); requestAnimationFrame(draw); return; }
+  const z = ZONES[R.z];
+  if (z && BGS[z.bg]) BGS[z.bg]();
+  const hb = Math.round(Math.sin(ts / 300) * 2);
+  drawSprite('hero', 42, 128 - 48 + hb, 3, false);
+  if (R.foe){
+    const sp = SPR[R.foe];
+    const sc = sp.px.length >= 16 ? 3 : 4;
+    const h = sp.px.length * sc, w = sp.px[0].length * sc;
+    const fb2 = Math.round(Math.sin(ts / 260 + 2) * 3);
+    const fx = 310 - w, fy = 128 - h + fb2;
+    drawSprite(R.foe, fx, fy, sc, true);
+    if (FX.flash > 0){
+      CX.fillStyle = 'rgba(255,255,255,' + (FX.flash / 10) + ')';
+      CX.fillRect(fx - 4, fy - 4, w + 8, h + 8);
+      FX.flash--;
+    }
+  }
+  CX.restore();
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// ---------- cinemática de introducción ----------
+const CUT = [
+  { dur:2600, cap:'Meses después de la Imprenta, el Compás de Plata te guió hasta el Observatorio: la fortaleza de tu antiguo maestro.',
+    draw(t, ts){ BGS.umbral(); const st2 = Math.round(Math.sin(ts / 120) * 2); drawSprite('hero', -30 + t * 150, 80 + st2, 3, false); } },
+  { dur:2600, cap:'La Sombra devora el sol. Cuando el eclipse sea total, Cartesia olvidará todas sus reglas… para siempre.',
+    draw(t){ const e0 = ECLIPSE; ECLIPSE = t; BGS.cupula(); ECLIPSE = e0; drawSprite('sombra', 132, 42, 4, false); } },
+  { dur:2600, cap:'Todo termina donde nace la luz. Este es el capítulo final de la Saga de Cartesia.',
+    draw(t, ts){ BGS.umbral(); drawSprite('hero', 120, 80, 3, false); if (Math.floor(ts / 300) % 2){ CX.fillStyle = '#ffe27a'; CX.fillRect(160, 88, 6, 6); } } }
+];
+function startCut(){
+  R.cut = CUT; R.cutShot = 0; R.cutStart = performance.now();
+  show('scr-game');
+  $('zone-tag').textContent = '🎬 Introducción';
+  $('skip-hint').classList.remove('hidden');
+  cutUI();
+}
+function cutUI(){
+  clearUI();
+  $('dlg-who').textContent = '';
+  $('dlg-text').textContent = R.cut[R.cutShot].cap;
+  $('skip-hint').textContent = 'escena ' + (R.cutShot + 1) + ' de ' + R.cut.length;
+  const b = document.createElement('button');
+  b.className = 'opt';
+  b.textContent = R.cutShot < R.cut.length - 1 ? '▶ Continuar' : '⚔️ Comenzar la aventura';
+  b.onclick = e => { e.stopPropagation(); advanceCut(); };
+  const sk = document.createElement('button');
+  sk.className = 'linky'; sk.textContent = '⏭ Saltar introducción';
+  sk.onclick = e => { e.stopPropagation(); endCut(); };
+  $('dlg-opts').appendChild(b);
+  $('dlg-opts').appendChild(sk);
+}
+function advanceCut(){
+  if (!R.cut) return;
+  R.cutShot++;
+  if (R.cutShot >= R.cut.length) return endCut();
+  R.cutStart = performance.now();
+  cutUI();
+}
+function drawCut(ts){
+  const shot = R.cut[R.cutShot];
+  const t = Math.min(1, (ts - R.cutStart) / shot.dur);
+  shot.draw(t, ts);
+}
+function endCut(){
+  if (!R.cut) return;
+  R.cut = null;
+  $('skip-hint').classList.add('hidden');
+  runZone(0);
+}
+$('stage-wrap').addEventListener('click', () => { if (R.cut) advanceCut(); });
+
+// ---------- diálogo ----------
+function typeText(who, text, cb){
+  $('dlg-who').textContent = who || '';
+  const el = $('dlg-text');
+  el.textContent = '';
+  R.fullText = text;
+  R.typeDone = cb || null;
+  let i = 0;
+  clearInterval(R.typing);
+  R.typing = setInterval(() => {
+    i += R.fast ? 10 : 2;
+    el.textContent = text.slice(0, i);
+    if (i >= text.length){
+      clearInterval(R.typing); R.typing = null;
+      const f = R.typeDone; R.typeDone = null; if (f) f();
+    }
+  }, 16);
+}
+function skipType(){
+  if (R.typing){
+    clearInterval(R.typing); R.typing = null;
+    $('dlg-text').textContent = R.fullText;
+    const f = R.typeDone; R.typeDone = null; if (f) f();
+    return true;
+  }
+  return false;
+}
+function clearUI(){
+  $('dlg-opts').innerHTML = '';
+  $('dlg-svg').classList.add('hidden');
+  $('dlg-inputwrap').classList.add('hidden');
+  $('fb').className = ''; $('fb').style.display = 'none';
+  $('dlg-tap').classList.add('hidden');
+}
+$('dlg').addEventListener('click', () => {
+  if (R.cut) return;
+  if (skipType()) return;
+  if (R.waitPot) return;
+  if (R.awaitTap && R.onTap){ R.awaitTap = false; const f = R.onTap; R.onTap = null; f(); }
+});
+function waitTap(cb){ R.awaitTap = true; R.onTap = cb; $('dlg-tap').classList.remove('hidden'); }
+
+// ---------- ejecutor ----------
+function runZone(zi){ R.z = zi; R.si = 0; R.foe = null;
+  ECLIPSE = Math.min(0.9, Object.keys(S.done).length / 5);
+  if (S.astro && S.shield === 0){ S.shield = 1; updHud(); } $('zone-tag').textContent = ZONES[zi].icon + ' ' + ZONES[zi].name; show('scr-game'); updHud(); step(); }
+function jumpTo(z, label){
+  const idx = z.steps.findIndex(s2 => s2.t === 'label' && s2.id === label);
+  R.si = idx >= 0 ? idx : R.si + 1;
+}
+function step(){
+  const z = ZONES[R.z];
+  if (R.si >= z.steps.length) return zoneDone();
+  const st = z.steps[R.si];
+  clearUI();
+  switch (st.t){
+    case 'label': R.si++; return step();
+    case 'flag': S.final = st.final; save(); R.si++; return step();
+    case 'goto_end': R.si = z.steps.length; return step();
+    case 'show': R.foe = st.foe; R.si++; return step();
+    case 'hide': R.foe = null; R.si++; return step();
+    case 'say':
+      typeText(st.who, st.text, () => waitTap(() => { R.si++; step(); }));
+      return;
+    case 'hurt':
+      S.hp = Math.max(1, S.hp - st.dmg); updHud(); FX.shake = 12; save();
+      typeText(N, st.text, () => waitTap(() => { R.si++; step(); }));
+      return;
+    case 'tutpotion':
+      $('btn-usepot').classList.add('blink');
+      R.waitPot = true;
+      typeText('Tutorial', st.text);
+      return;
+    case 'choice':
+      typeText(st.who, st.text, () => {
+        const box = $('dlg-opts');
+        st.opts.forEach(op => {
+          const b = document.createElement('button');
+          b.className = 'opt'; b.textContent = op.txt;
+          b.onclick = e => { e.stopPropagation();
+            if (op.jump) jumpTo(z, op.jump); else R.si++;
+            step(); };
+          box.appendChild(b);
+        });
+      });
+      return;
+    case 'q':
+      R.inBattle = false;
+      askQ(st.q, ok => {
+        if (ok){ if (R.daggerUsed) R.daggerUsed = false; else { S.xp += 12; S.coin += 2; } save(); updHud(); waitTap(() => { R.si++; step(); }); }
+        else if (S.hp <= 0) gameOver();
+        else retryBtn(() => step());
+      });
+      return;
+    case 'escriba':
+      typeText(N, 'Una esquirla de sol eclipsado flota ante ti: un DESAFÍO DEL ECLIPSE 🌑.\n\nEs MÁS difícil. Si aciertas: +1 Fragmento de Corona (+20 XP, +5 🪙). Si fallas: pierdes 2 ♥.\n\n(Con 3 fragmentos desbloqueas la CORONA DEL ECLIPSE 👑)', () => {
+        const box = $('dlg-opts');
+        const acc = document.createElement('button');
+        acc.className = 'opt risky'; acc.textContent = '🌑 Aceptar el desafío (riesgo: −2 ♥)';
+        acc.onclick = e => { e.stopPropagation(); clearUI();
+          R.inBattle = false;
+          askQ(st.q, ok => {
+            if (ok){
+              S.sellos++; S.xp += 20; S.coin += 5;
+              if (S.sellos >= 3 && S.skin !== 'corona'){ S.skin = 'corona'; applySkin(); R.unlockMsg = true; }
+              save(); updHud();
+              waitTap(() => {
+                if (R.unlockMsg){ R.unlockMsg = false;
+                  typeText('👑', '¡CORONA DEL ECLIPSE DESBLOQUEADA!\n\nReuniste los 3 Fragmentos. Tu armadura arde con la corona del sol oculto — y quedará registrada en tu código final.', () => waitTap(() => { R.si++; step(); }));
+                } else { R.si++; step(); }
+              });
+            }
+            else if (S.hp <= 0) gameOver();
+            else waitTap(() => { R.si++; step(); });
+          }, 2);
+        };
+        const dec = document.createElement('button');
+        dec.className = 'opt'; dec.textContent = 'Rechazar y seguir seguro';
+        dec.onclick = e => { e.stopPropagation(); R.si++; step(); };
+        box.appendChild(acc); box.appendChild(dec);
+      });
+      return;
+    case 'battle':
+      R.inBattle = true;
+      R.foe = st.foe;
+      R.battle = { st, bhp:st.hp, qi:0 };
+      $('foe-bar').style.display = 'flex';
+      $('foe-name').textContent = '👹 ' + st.name;
+      foeBar();
+      battleTurn();
+      return;
+    case 'shop':
+      renderShop();
+      return;
+    case 'item':
+      if (st.pot) S.pot = Math.min(9, S.pot + st.pot);
+      if (st.coin) S.coin += st.coin;
+      if (st.dag) S.dag = (S.dag || 0) + st.dag;
+      if (st.xp) S.xp += st.xp;
+      updHud(); save();
+      typeText('✨', st.text, () => waitTap(() => { R.si++; step(); }));
+      return;
+    default: R.si++; return step();
+  }
+}
+function renderShop(){
+  clearUI();
+  typeText('Mercader Baldomero', 'Mi tienda flotante, a tu servicio. Tienes ' + S.coin + ' 🪙.\n\n🧪 Poción (recupera 2 ♥) — 6 🪙\n🛡 Escudo (absorbe 1 error) — 8 🪙\n🗡 Daga de Grafito (elimina 1 pregunta) — 12 🪙', () => {
+    const box = $('dlg-opts');
+    const mk = (txt, en, fn) => {
+      const b = document.createElement('button');
+      b.className = 'opt'; b.textContent = txt; b.disabled = !en;
+      b.onclick = e => { e.stopPropagation(); fn(); };
+      box.appendChild(b);
+    };
+    mk('Comprar poción 🧪 — 6 🪙', S.coin >= 6 && S.pot < 9, () => { S.coin -= 6; S.pot++; save(); updHud(); renderShop(); });
+    mk(S.shield > 0 ? 'Escudo 🛡 (ya tienes uno)' : 'Comprar escudo 🛡 — 8 🪙', S.coin >= 8 && S.shield === 0, () => { S.coin -= 8; S.shield = 1; save(); updHud(); renderShop(); });
+    mk('Comprar Daga de Grafito 🗡 — 12 🪙' + (S.dag >= 2 ? ' (máx. 2)' : ''), S.coin >= 12 && (S.dag || 0) < 2, () => { S.coin -= 12; S.dag = (S.dag || 0) + 1; save(); updHud(); renderShop(); });
+    mk('Nada más, gracias (seguir viaje) →', true, () => { R.si++; step(); });
+  });
+}
+function foeBar(){
+  const b = R.battle;
+  $('foe-hp').firstElementChild.style.width = (b.bhp / b.st.hp * 100) + '%';
+}
+function battleTurn(){
+  const b = R.battle;
+  const q = b.st.qs[b.qi % b.st.qs.length];
+  b.qi++;
+  clearUI();
+  $('foe-bar').style.display = 'flex';
+  askQ(q, ok => {
+    if (ok){
+      if (R.daggerUsed) R.daggerUsed = false;
+      else { S.xp += 15; S.coin += 2; }
+      save(); updHud();
+      FX.flash = 10;
+      b.bhp--; foeBar();
+      if (b.bhp <= 0){
+        R.inBattle = false;
+        $('foe-bar').style.display = 'none';
+        S.xp += 10; save(); updHud();
+        typeText(N, '¡' + b.st.name + ' ha sido vencido! ⚔️ (+10 XP de botín)', () => waitTap(() => { R.si++; step(); }));
+      } else waitTap(battleTurn);
+    } else if (S.hp <= 0) gameOver();
+    else retryBtn(battleTurn);
+  });
+}
+function retryBtn(cb){
+  const b = document.createElement('button');
+  b.className = 'opt'; b.textContent = '💢 Recuperarse y continuar';
+  b.onclick = e => { e.stopPropagation(); cb(); };
+  $('dlg-opts').appendChild(b);
+}
+function zoneDone(){
+  const z = ZONES[R.z];
+  if (!S.done[z.id]){ S.done[z.id] = true; S.xp += 10; }
+  $('foe-bar').style.display = 'none';
+  save(); updHud();
+  ECLIPSE = Math.min(0.9, Object.keys(S.done).length / 5);
+  if (z.id === 'cupula') return finishGame();
+  renderMap(); show('scr-map');
+}
+
+// ---------- preguntas ----------
+function askQ(q, done, dmg){
+  dmg = dmg || 1;
+  S.answered++;
+  $('dlg-who').textContent = R.inBattle ? '👹 ' + R.battle.st.name : '📜 Desafío';
+  $('dlg-text').textContent = q.q;
+  if (q.svg){ $('dlg-svg').innerHTML = q.svg; $('dlg-svg').classList.remove('hidden'); }
+  const finish = ok => {
+    const fb = $('fb');
+    if (ok){ S.correct++; fb.className = 'ok';
+      fb.innerHTML = '<b>⚔️ ¡Correcto! +' + (R.inBattle ? 15 : 12) + ' XP · +2 🪙</b><br>' + q.fb; }
+    else if (S.shield > 0){
+      S.shield--; fb.className = 'bad';
+      fb.innerHTML = '<b>🛡 ¡TU ESCUDO ABSORBIÓ EL GOLPE! No pierdes corazones, pero el escudo se rompió.</b><br>' + q.fb;
+      ok = false;
+    } else {
+      S.hp = Math.max(0, S.hp - dmg); FX.shake = 12;
+      fb.className = 'bad';
+      fb.innerHTML = '<b>💔 ¡Recibes daño! (−' + dmg + ' ' + '♥'.repeat(dmg) + ')</b><br>' + q.fb;
+    }
+    updHud(); save();
+    done(ok);
+  };
+  if (q.t === 'move'){
+    const st = { fx:q.fx, h:q.start.h, k:q.start.k, sx:q.start.sx, sy:q.start.sy,
+                 th:q.target.h, tk:q.target.k, tsx:q.target.sx, tsy:q.target.sy };
+    const sb = $('dlg-svg');
+    const render = () => { sb.innerHTML = movePlot(st); sb.classList.remove('hidden'); };
+    render();
+    const box = $('dlg-opts');
+    const row = document.createElement('div'); row.className = 'movebtns';
+    let lock = false;
+    const mk = (txt, fn) => { const b = document.createElement('button');
+      b.className = 'mbtn'; b.textContent = txt;
+      b.onclick = e => { e.stopPropagation(); if (lock) return; fn(b); render(); };
+      row.appendChild(b); return b; };
+    if (q.mode === 'shift'){
+      mk('←', () => st.h = Math.max(-5, st.h - 1));
+      mk('→', () => st.h = Math.min(5, st.h + 1));
+      mk('↑', () => st.k = Math.min(5, st.k + 1));
+      mk('↓', () => st.k = Math.max(-5, st.k - 1));
+    } else {
+      mk('🪞 Espejo eje X', b => { st.sy = -st.sy; b.classList.toggle('on', st.sy === -1); });
+      mk('🪞 Espejo eje Y', b => { st.sx = -st.sx; b.classList.toggle('on', st.sx === -1); });
+    }
+    box.appendChild(row);
+    const c = document.createElement('button');
+    c.className = 'opt'; c.textContent = '✅ Confirmar posición';
+    c.onclick = e => { e.stopPropagation(); if (lock) return; lock = true;
+      document.querySelectorAll('#dlg-opts .opt, #dlg-opts .mbtn').forEach(x => x.disabled = true);
+      finish(st.h === st.th && st.k === st.tk && st.sx === st.tsx && st.sy === st.tsy); };
+    box.appendChild(c);
+    return;
+  }
+  if (q.t === 'input'){
+    $('dlg-inputwrap').classList.remove('hidden');
+    $('dlg-input').value = '';
+    $('btn-check').onclick = e => {
+      e.stopPropagation();
+      const v = norm($('dlg-input').value);
+      if (!v) return;
+      $('dlg-inputwrap').classList.add('hidden');
+      const ok = q.a.some(ans => norm(ans) === v || (isFinite(parseFloat(v)) && parseFloat(norm(ans)) === parseFloat(v)));
+      finish(ok);
+    };
+  } else {
+    const box = $('dlg-opts');
+    shuffle(q.o.map((t, k) => ({ t, k }))).forEach(op => {
+      const b = document.createElement('button');
+      b.className = 'opt'; b.textContent = op.t; b.dataset.k = op.k;
+      b.onclick = e => {
+        e.stopPropagation();
+        document.querySelectorAll('#dlg-opts .opt').forEach(x => {
+          x.disabled = true;
+          if (+x.dataset.k === q.a) x.classList.add('ok');
+        });
+        if (op.k !== q.a) b.classList.add('bad');
+        finish(op.k === q.a);
+      };
+      box.appendChild(b);
+    });
+  }
+  if (S.dag > 0 && dmg === 1){
+    const d = document.createElement('button');
+    d.className = 'opt risky';
+    d.textContent = '🗡 Usar Daga de Grafito (tienes ' + S.dag + ') — eliminar esta pregunta';
+    d.onclick = e => {
+      e.stopPropagation();
+      S.dag--;
+      S.answered = Math.max(0, S.answered - 1);
+      R.daggerUsed = true;
+      $('dlg-inputwrap').classList.add('hidden');
+      document.querySelectorAll('#dlg-opts .opt').forEach(x => x.disabled = true);
+      const fb = $('fb');
+      fb.className = 'ok';
+      fb.innerHTML = '<b>🗡 La Daga de Grafito corta el pergamino: pregunta eliminada.</b> (sin XP ni monedas)';
+      updHud(); save();
+      done(true);
+    };
+    $('dlg-opts').appendChild(d);
+  }
+}
+
+// ---------- mapa ----------
+function renderMap(){
+  $('map-hi').textContent = S.name + ' (' + CLASES[S.clase].n + ') · ' + '♥'.repeat(S.hp) + ' · 🧪' + S.pot + ' · 🪙' + S.coin + ' · 🖋' + S.sellos + '/3 · ✦' + S.xp + ' XP';
+  const list = $('map-list'); list.innerHTML = '';
+  ZONES.forEach((z, i) => {
+    const done = S.done[z.id];
+    const unlocked = z.need.every(n => n.split('|').some(id => S.done[id]));
+    const b = document.createElement('button');
+    b.className = 'node' + (done ? ' done' : '') + (!unlocked ? ' locked' : '');
+    const st = done ? '✔ Completada' : unlocked ? (z.route ? 'Ruta opcional — elige tu camino' : '¡Disponible!') : '🔒 Bloqueada';
+    b.innerHTML = '<span class="ico">' + (done ? '✅' : z.icon) + '</span><span><div class="tt">' + z.name + '</div><div class="st">' + st + '</div></span>';
+    if (unlocked && !done) b.onclick = () => runZone(i);
+    else b.disabled = true;
+    list.appendChild(b);
+  });
+}
+
+// ---------- final ----------
+function gameOver(){ S.deaths = (S.deaths || 0) + 1; S.xp = Math.max(0, S.xp - 20); save(); show('scr-over'); }
+$('btn-retry').onclick = () => {
+  S.hp = S.maxhp; updHud(); save();
+  show('scr-game');
+  if (R.inBattle){ R.battle.bhp = R.battle.st.hp; R.battle.qi = 0; foeBar(); battleTurn(); }
+  else step();
+};
+function finishGame(){
+  ECLIPSE = 0;   // el sol volvió
+  const mins = S.mins || Math.max(1, Math.round((Date.now() - S.start) / 60000));
+  S.mins = mins; save();
+  const pct = S.answered ? S.correct / S.answered : 0;
+  const rank = pct >= 0.9 ? '🏅 Rango: Cartógrafo/a Legendario/a' : pct >= 0.7 ? '🛡️ Rango: Guardián/a del Observatorio' : '🌱 Rango: Aprendiz Prometedor/a';
+  const logros = [];
+  if (!S.deaths) logros.push('Invicto/a 💪');
+  if (S.sellos >= 3) logros.push('Corona del Eclipse 👑');
+  if (S.astro) logros.push('Astrolabio 🔭');
+  if (S.final === 'redencion') logros.push('Final Verdadero ✨');
+  const lstr = logros.length ? logros.join(' · ') : '—';
+  const lflags = (!S.deaths ? 'V' : '') + (S.sellos >= 3 ? 'C' : '') + (S.astro ? 'A' : '') + (S.final === 'redencion' ? 'R' : '');
+  $('end-name').textContent = S.name + ' · ' + CLASES[S.clase].n;
+  $('end-xp').textContent = '✦ ' + S.xp + ' XP';
+  $('end-detail').textContent = S.correct + ' aciertos en ' + S.answered + ' desafíos · ' + S.sellos + '/3 fragmentos 🌑 · ' + mins + ' min';
+  $('end-rank').textContent = rank;
+  $('end-extra').textContent = 'Final: ' + (S.final === 'redencion' ? 'LA REDENCIÓN ✨' : 'EL SELLO 🔒') + ' · Logros: ' + lstr;
+  const payload = [S.name.slice(0, 30), S.clase, S.xp, S.correct, S.answered, mins, String(S.sellos), lflags || '-', S.final || 'sello'].join('|');
+  $('end-code').textContent = encCode(payload, KEY3);
+  show('scr-end');
+}
+
+// ---------- eventos ----------
+$('btn-start').onclick = () => {
+  const n = $('in-name').value.trim();
+  if (n.length < 3){ $('in-name').placeholder = '⚠️ Escribe tu nombre y apellido real'; $('in-name').focus(); return; }
+  S = { name:n, clase:pickClase, skin:pickSkin, hp:5, maxhp:5, pot:1, coin:0, shield:0, dag:0, astro:0,
+        sellos:0, deaths:0, xp:0, correct:0, answered:0, done:{}, start:Date.now(), mins:0, final:'' };
+  if (pickClase === 'explorador') S.pot += 2;
+  if (pickClase === 'valiente'){ S.maxhp = 6; S.hp = 6; }
+  if (pickClase === 'erudito') S.shield = 1;
+  if (vet1Ok) S.pot += 1;
+  if (vet2Ok) S.pot += 1;
+  if (vet1Ok && vet2Ok){ S.astro = 1; S.shield = Math.max(S.shield, 1); }
+  applySkin(); save(); updHud();
+  startCut();
+};
+$('btn-usepot').onclick = () => {
+  if (S.pot > 0 && S.hp < S.maxhp){
+    S.pot--; S.hp = Math.min(S.maxhp, S.hp + 2); updHud(); save();
+    if (R.waitPot){
+      R.waitPot = false;
+      $('btn-usepot').classList.remove('blink');
+      typeText('Tutorial', '¡Perfecto! Recuperaste 2 corazones ❤️.\n\nGanarás pociones ayudando a otros o comprándolas con monedas 🪙 en el bazar. Un consejo: guárdalas para los jefes…', () => waitTap(() => { R.si++; step(); }));
+    }
+  }
+};
+$('btn-fast').onclick = e => { e.stopPropagation(); R.fast = !R.fast;
+  $('btn-fast').style.color = R.fast ? 'var(--gold)' : ''; };
+$('dlg-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-check').click(); });
+$('dlg-input').addEventListener('click', e => e.stopPropagation());
+$('btn-copy').onclick = () => {
+  const code = $('end-code').textContent;
+  const done = () => { $('btn-copy').textContent = '✅ ¡Copiado! Pégalo en Classroom'; };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done).catch(() => fallbackCopy(code, done));
+  else fallbackCopy(code, done);
+};
+function fallbackCopy(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch(e){ alert('Copia manual: ' + text); }
+  document.body.removeChild(ta);
+}
+$('btn-reset').onclick = () => {
+  if (confirm('¿Borrar toda la aventura y empezar de nuevo?')){
+    try { localStorage.removeItem(STORE); } catch(e){}
+    location.reload();
+  }
+};
+$('btn-teacher').onclick = () => {
+  const p = prompt('PIN docente:');
+  if (p === PIN){ $('t-result').innerHTML = ''; $('t-code').value = ''; show('scr-teacher'); }
+  else if (p !== null) alert('PIN incorrecto.');
+};
+$('btn-tback').onclick = () => show('scr-title');
+$('btn-decode').onclick = () => {
+  const raw = $('t-code').value;
+  const p3 = decCode(raw, KEY3, 9);
+  const p2 = p3 ? null : decCode(raw, KEY2, 7);
+  const p1 = (p3 || p2) ? null : decCode(raw, KEY1, 5);
+  let html;
+  const esc = t => String(t).replace(/</g, '&lt;');
+  if (p3){
+    const cl = CLASES[p3[1]] ? CLASES[p3[1]].n : p3[1];
+    const lg = { V:'Invicto/a', C:'Corona 👑', A:'Astrolabio 🔭', R:'Final Verdadero ✨' };
+    const logros = p3[7] === '-' ? '—' : p3[7].split('').map(f => lg[f] || f).join(' · ');
+    html = '<p style="color:var(--ok)"><b>✔ Juego 3: El Eclipse de Cartesia</b></p><table class="dec">' +
+      '<tr><td>Estudiante</td><td><b>' + esc(p3[0]) + '</b></td></tr>' +
+      '<tr><td>Clase</td><td>' + cl + '</td></tr>' +
+      '<tr><td>XP</td><td><b>' + p3[2] + '</b></td></tr>' +
+      '<tr><td>Aciertos</td><td>' + p3[3] + ' de ' + p3[4] + '</td></tr>' +
+      '<tr><td>Tiempo</td><td>' + p3[5] + ' min</td></tr>' +
+      '<tr><td>Fragmentos 🌑</td><td>' + p3[6] + '/3</td></tr>' +
+      '<tr><td>Final</td><td>' + (p3[8] === 'redencion' ? 'Redención ✨' : 'Sello 🔒') + '</td></tr>' +
+      '<tr><td>Logros</td><td>' + logros + '</td></tr></table>';
+  } else if (p2){
+    const cl = CLASES[p2[1]] ? CLASES[p2[1]].n : p2[1];
+    html = '<p style="color:var(--ok)"><b>✔ Juego 2: Los Ríos de Tinta</b></p><table class="dec">' +
+      '<tr><td>Estudiante</td><td><b>' + esc(p2[0]) + '</b></td></tr>' +
+      '<tr><td>Clase</td><td>' + cl + '</td></tr>' +
+      '<tr><td>XP</td><td><b>' + p2[2] + '</b></td></tr>' +
+      '<tr><td>Aciertos</td><td>' + p2[3] + ' de ' + p2[4] + '</td></tr>' +
+      '<tr><td>Tiempo</td><td>' + p2[5] + ' min</td></tr>' +
+      '<tr><td>Sellos 🖋</td><td>' + p2[6].replace('★', ' · ✨ Armadura Estelar') + '/3</td></tr></table>';
+  } else if (p1){
+    html = '<p style="color:var(--ok)"><b>✔ Juego 1: La Torre del Cartógrafo</b></p><table class="dec">' +
+      '<tr><td>Estudiante</td><td><b>' + esc(p1[0]) + '</b></td></tr>' +
+      '<tr><td>XP</td><td><b>' + p1[1] + '</b></td></tr>' +
+      '<tr><td>Aciertos</td><td>' + p1[2] + ' de ' + p1[3] + '</td></tr>' +
+      '<tr><td>Tiempo</td><td>' + p1[4] + ' min</td></tr></table>';
+  } else html = '<p style="color:var(--bad); margin-top:10px"><b>Código inválido o alterado ✘</b></p>';
+  $('t-result').innerHTML = html;
+};
+
+// ---------- arranque ----------
+(function init(){
+  const prev = load();
+  if (prev && prev.name){
+    S = prev; S.dag = S.dag || 0; S.astro = S.astro || 0; S.deaths = S.deaths || 0; applySkin(); updHud();
+    ECLIPSE = Math.min(0.9, Object.keys(S.done).length / 5);
+    if (S.done.cupula) finishGame();
+    else if (Object.keys(S.done).length > 0){ renderMap(); show('scr-map'); }
+  }
+})();
+</script>
+</body>
+</html>
