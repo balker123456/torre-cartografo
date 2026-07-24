@@ -88,11 +88,12 @@
   .helpcard{background:var(--panel2); border:2px solid var(--border); border-radius:4px; padding:11px 13px; margin:8px 0; font-size:.92rem; line-height:1.5;}
   .lbl{font-size:.8rem; color:var(--mut); text-transform:uppercase; letter-spacing:.06em; margin:12px 0 4px; text-align:left;}
   .shopitem{display:flex; justify-content:space-between; align-items:center; gap:8px;}
-  .movebtns{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:8px 0;}
-  .mbtn{min-width:52px; height:46px; font:inherit; font-size:1.15rem; font-weight:bold;
-    background:var(--panel2); color:var(--txt); border:2px solid var(--border); border-radius:4px;}
-  .mbtn:active{transform:translateY(2px);}
+  .movebtns{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:10px 0;}
+  .mbtn{min-width:58px; flex:1 1 58px; max-width:96px; height:50px; font:inherit; font-size:1.2rem; font-weight:bold;
+    background:var(--panel2); color:var(--txt); border:2px solid var(--border); border-radius:6px; touch-action:manipulation;}
+  .mbtn:active{transform:translateY(2px); background:#3a2a4a;}
   .mbtn.on{border-color:var(--gold); background:#3a2a1e;}
+  .movehint{text-align:center; color:var(--mut); font-size:.82rem; margin:2px 0 4px;}
   #scr-splash{cursor:pointer;}
   #cover-wrap{border:3px solid var(--border); border-radius:4px; overflow:hidden; box-shadow:0 3px 0 #0d0716; background:#000;}
   #cover{display:block; width:100%; height:auto; image-rendering:pixelated; image-rendering:crisp-edges;}
@@ -424,9 +425,9 @@ function plotSVG(cfg){
 
 // ---------- gráfico interactivo (mover / reflejar) ----------
 function movePlot(st){
-  const W = 260, H = 240, cxp = 130, cyp = 120, u = 17;
-  const X = v => cxp + v * u, Y = v => cyp - v * u;
-  let g = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="300" xmlns="http://www.w3.org/2000/svg">';
+  const W = 280, H = 258, ox = 140, oy = 122, u = 17, YMAX = 6.7;
+  const X = v => ox + v * u, Y = v => oy - v * u;
+  let g = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:300px;height:auto" xmlns="http://www.w3.org/2000/svg">';
   for (let v = -6; v <= 6; v++){
     g += '<line x1="' + X(v) + '" y1="' + Y(-6) + '" x2="' + X(v) + '" y2="' + Y(6) + '" stroke="#241333"/>';
     g += '<line x1="' + X(-6) + '" y1="' + Y(v) + '" x2="' + X(6) + '" y2="' + Y(v) + '" stroke="#241333"/>';
@@ -438,20 +439,33 @@ function movePlot(st){
     g += '<text x="' + (X(0) - 8) + '" y="' + (Y(v) + 3) + '" fill="#b59cc9" font-size="9" text-anchor="end">' + v + '</text>';
   });
   const base = st.fx === 'line' ? (x => x) : (x => x * x);
-  const curve = (h, k, sx, sy) => {
-    const pts = [];
-    for (let i = 0; i <= 96; i++){
-      const x = -6 + i * 0.125;
-      let y = sy * (base(sx * x - h) + k);
-      if (y < -6.6 || y > 6.6){ if (pts.length && pts[pts.length-1] !== '|') pts.push('|'); continue; }
-      pts.push(X(x).toFixed(1) + ',' + Y(y).toFixed(1));
+  function segments(h, k, sx, sy){
+    const segs = []; let cur = [];
+    for (let i = 0; i <= 140; i++){
+      const x = -6.5 + i * (13 / 140);
+      const y = sy * (base(sx * x - h) + k);
+      if (y < -YMAX || y > YMAX){ if (cur.length > 1) segs.push(cur); cur = []; continue; }
+      cur.push(X(x).toFixed(1) + ',' + Y(y).toFixed(1));
     }
-    return pts.join(' ').split(' | ').map(seg => '<polyline points="' + seg + '" fill="none" stroke-width="3" stroke-linejoin="round"');
-  };
-  curve(st.th, st.tk, st.tsx, st.tsy).forEach(p => g += p + ' stroke="#ffce63" stroke-dasharray="6 5" opacity=".9"/>');
-  curve(st.h, st.k, st.sx, st.sy).forEach(p => g += p + ' stroke="#c9a2e0"/>');
-  g += '<text x="8" y="14" fill="#ffce63" font-size="10">- - objetivo</text>';
-  g += '<text x="8" y="28" fill="#c9a2e0" font-size="10">— tu gráfico</text>';
+    if (cur.length > 1) segs.push(cur);
+    return segs;
+  }
+  const drawCurve = (h, k, sx, sy, attrs) =>
+    segments(h, k, sx, sy).forEach(seg => { g += '<polyline points="' + seg.join(' ') + '" fill="none" stroke-width="3" stroke-linejoin="round" ' + attrs + '/>'; });
+  // objetivo (punteado dorado) + su vértice/marca
+  drawCurve(st.th, st.tk, st.tsx, st.tsy, 'stroke="#ffce63" stroke-dasharray="6 5" opacity=".85"');
+  if (st.fx !== 'line') g += '<circle cx="' + X(st.th / st.tsx) + '" cy="' + Y(st.tsy * st.tk) + '" r="5" fill="none" stroke="#ffce63" stroke-width="2"/>';
+  // tu curva (morada sólida) + su vértice
+  drawCurve(st.h, st.k, st.sx, st.sy, 'stroke="#c9a2e0"');
+  if (st.fx !== 'line') g += '<circle cx="' + X(st.h / st.sx) + '" cy="' + Y(st.sy * st.k) + '" r="4" fill="#c9a2e0"/>';
+  // leyenda + lectura de vértice
+  g += '<rect x="4" y="4" width="112" height="30" fill="rgba(13,7,22,.65)" rx="3"/>';
+  g += '<text x="10" y="16" fill="#ffce63" font-size="9">- - objetivo</text>';
+  g += '<text x="10" y="28" fill="#c9a2e0" font-size="9">&#8212; tu gráfico</text>';
+  if (st.fx !== 'line'){
+    const vx = st.h / st.sx, vy = st.sy * st.k;
+    g += '<text x="' + (W/2) + '" y="' + (H - 6) + '" fill="#c9a2e0" font-size="11" text-anchor="middle">tu vértice: (' + vx + ', ' + vy + ')</text>';
+  }
   return g + '</svg>';
 }
 
@@ -491,7 +505,7 @@ const ZONES = [
   steps:[
   { t:'say', who:'🧭 Compás de Plata', text:'Estas lentes enfocaban el cielo moviéndose con reglas precisas:\n\nSumar FUERA de la función — f(x) + k — la sube.\nRestar DENTRO — f(x − h) — la mueve a la DERECHA.\n\nSuena al revés, lo sé. Por eso vas a moverlas TÚ.' },
   { t:'q', q:{ t:'move', mode:'shift', fx:'parab',
-      q:'🕹️ Mueve la lente (tu parábola) con los botones hasta calzarla con el haz de luz (objetivo).',
+      q:'🕹️ Usa ← → (mover en x) y ↑ ↓ (mover en y) para llevar TU parábola morada hasta que calce con la punteada dorada. Guíate por los vértices (los puntos). Pulsa Confirmar cuando coincidan.',
       start:{h:0,k:0,sx:1,sy:1}, target:{h:3,k:2,sx:1,sy:1},
       fb:'Llegaste a y = (x − 3)² + 2: tres a la DERECHA (x − 3) y dos ARRIBA (+2). Restar dentro mueve a la derecha.' } },
   { t:'q', q:{ t:'mc', q:'PLACA DE BRONCE 🔍:\n\n¿Qué le hace f(x) + 3 al gráfico de f?', o:[
@@ -501,7 +515,7 @@ const ZONES = [
   { t:'say', who:'Vitral Animado', text:'Crrrick… soy los colores rotos del Observatorio.\n\nEl amo me desplazó tantas veces que olvidé mi lugar. Si sabes moverte… derrótame.' },
   { t:'battle', foe:'vitral', name:'Vitral Animado', hp:3, qs:[
     { t:'move', mode:'shift', fx:'parab',
-      q:'🕹️ ¡El vitral se esconde! Lleva tu parábola hasta su posición (objetivo).',
+      q:'🕹️ El vitral se esconde en la parábola punteada. Muévete con ← → ↑ ↓ hasta que tu vértice morado caiga sobre el dorado. Confirma cuando calcen.',
       start:{h:0,k:0,sx:1,sy:1}, target:{h:-2,k:0,sx:1,sy:1},
       fb:'Objetivo: y = (x + 2)². Para ir a la IZQUIERDA se SUMA dentro: x + 2 significa h = −2.' },
     { t:'mc', q:'El vitral brilla con v(x) = (x − 1)² + 5.\n\n¿Cuál es su vértice?', o:[
@@ -548,7 +562,7 @@ const ZONES = [
   steps:[
   { t:'say', who:'🧭 Compás de Plata', text:'Los espejos del Observatorio reflejan funciones:\n\n−f(x) refleja respecto al eje X (la salida cambia de signo).\nf(−x) refleja respecto al eje Y (la entrada cambia de signo).\n\nPruébalo con tus propias manos.' },
   { t:'q', q:{ t:'move', mode:'mirror', fx:'parab',
-      q:'🕹️ La función f(x) = (x − 2)² + 1 está frente al espejo.\n\nUsa los espejos hasta obtener −f(x) (el objetivo punteado).',
+      q:'🕹️ Tu parábola f(x) = (x − 2)² + 1 (morada) debe transformarse en −f(x) (punteada dorada, dada vuelta bajo el eje X).\n\nPulsa el botón de Espejo correcto y observa cómo se refleja. Confirma cuando calcen.',
       start:{h:2,k:1,sx:1,sy:1}, target:{h:2,k:1,sx:1,sy:-1},
       fb:'−f(x) = −(x − 2)² − 1: TODA la salida cambió de signo y el gráfico se dio vuelta bajo el eje X.' } },
   { t:'q', q:{ t:'mc', q:'MARCO DEL PRIMER ESPEJO 🪞:\n\n−f(x) refleja el gráfico respecto a…', o:[
@@ -603,7 +617,7 @@ const ZONES = [
       fb:'Espejo en el eje X: la x no cambia, la salida cambia de signo: (5, −3).' },
     { t:'input', q:'FASE 4 🌒 "El eclipse crece como E(t) = t²."\n\n¿Con qué rapidez promedio avanzó entre t = 2 y t = 4?', a:['6'], fb:'(16 − 4)/(4 − 2) = 12/2 = 6. Cada vez más rápido: eso es lo cuadrático.' },
     { t:'move', mode:'shift', fx:'parab',
-      q:'🕹️ GOLPE FINAL 💥 ¡Atrápalo con la Red de Luz!\n\nLleva tu parábola exactamente hasta su escondite (objetivo punteado).',
+      q:'🕹️ GOLPE FINAL 💥 ¡Atrápalo con la Red de Luz! Usa ← → ↑ ↓ para llevar tu parábola morada sobre la punteada dorada (vértice sobre vértice). Confirma para lanzar la red.',
       start:{h:0,k:0,sx:1,sy:1}, target:{h:4,k:1,sx:1,sy:1},
       fb:'y = (x − 4)² + 1: la red cayó sobre el vértice (4, 1). ¡La Sombra está atrapada!' }
   ]},
@@ -1094,6 +1108,9 @@ function askQ(q, done, dmg){
     const render = () => { sb.innerHTML = movePlot(st); sb.classList.remove('hidden'); };
     render();
     const box = $('dlg-opts');
+    const hint = document.createElement('div'); hint.className = 'movehint';
+    hint.textContent = q.mode === 'shift' ? '← → mueven en x · ↑ ↓ mueven en y' : 'Refleja con los espejos hasta calzar el objetivo';
+    box.appendChild(hint);
     const row = document.createElement('div'); row.className = 'movebtns';
     let lock = false;
     const mk = (txt, fn) => { const b = document.createElement('button');
